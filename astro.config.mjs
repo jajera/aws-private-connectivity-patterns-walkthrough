@@ -2,6 +2,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightThemeVintage from 'starlight-theme-vintage';
 import { starlightBasePath } from 'starlight-base-path';
+import starlightImageZoom from 'starlight-image-zoom';
 import mermaid from 'astro-mermaid';
 
 export default defineConfig({
@@ -32,7 +33,7 @@ export default defineConfig({
           },
         },
       ],
-      plugins: [starlightThemeVintage(), starlightBasePath()],
+      plugins: [starlightThemeVintage(), starlightBasePath(), starlightImageZoom()],
       social: [
         {
           icon: 'github',
