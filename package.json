@@ -6,7 +6,8 @@
   "description": "Astro + Starlight documentation companion for AWS private cross-account connectivity patterns",
   "scripts": {
     "dev": "astro dev",
-    "build": "node scripts/check-placeholders.mjs && node scripts/check-asides.mjs && node scripts/check-links.mjs && astro build",
+    "validate": "node scripts/check-placeholders.mjs && node scripts/check-asides.mjs && node scripts/check-links.mjs",
+    "build": "npm run validate && astro build",
     "preview": "astro preview",
     "test": "vitest run",
     "test:integration": "vitest run tests/integration"
