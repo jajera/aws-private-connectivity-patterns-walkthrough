@@ -1,0 +1,56 @@
+---
+title: Tools and Accounts
+description: Required tools and AWS CLI profiles for the private connectivity patterns walkthrough.
+---
+
+Before deploying any pattern from the [upstream demo repository](https://github.com/jajera/aws-private-connectivity-patterns-demo), confirm your workstation and AWS accounts are ready.
+
+## Required Tools
+
+| Tool | Minimum version | Purpose |
+|------|-----------------|---------|
+| [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) | v2.x | Profile-based authentication and resource inspection |
+| [Terraform](https://developer.hashicorp.com/terraform/install) | `>= 1.5` | Apply and destroy pattern infrastructure |
+| [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html) | Latest | Interactive shell on private test EC2 instances via SSM |
+
+## Required AWS CLI Profiles
+
+Configure two named profiles for SSO access to the demo accounts:
+
+| Profile | Account role | Placeholder account ID |
+|---------|--------------|------------------------|
+| `shared-services` | Provider account (VPC endpoint service, TGW owner, Cloud WAN core network) | `123456789012` |
+| `dev` | Consumer account (endpoints, attachments, test EC2) | `987654321098` |
+
+Example `~/.aws/config` fragment (replace SSO URLs and role names with your organization's values):
+
+```ini
+[profile shared-services]
+sso_start_url = https://EXAMPLE.awsapps.com/start
+sso_region = ap-southeast-2
+sso_account_id = 123456789012
+sso_role_name = EXAMPLE-AdminRole
+region = ap-southeast-2
+
+[profile dev]
+sso_start_url = https://EXAMPLE.awsapps.com/start
+sso_region = ap-southeast-2
+sso_account_id = 987654321098
+sso_role_name = EXAMPLE-AdminRole
+region = ap-southeast-2
+```
+
+Set the default region for pattern work:
+
+```bash
+export AWS_REGION=ap-southeast-2
+export DEV_ACCOUNT_ID=987654321098
+```
+
+## Optional Environment File
+
+The upstream repo provides `docs/local.env.example`. Copy it to `docs/local.env` (gitignored) and record Terraform outputs as you progress through each pattern.
+
+## Next Steps
+
+Continue to [Pre-flight](/walkthrough/preflight/) before any `terraform apply`.

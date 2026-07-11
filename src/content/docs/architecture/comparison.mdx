@@ -1,0 +1,62 @@
+---
+title: Pattern Comparison
+description: Side-by-side comparison of OSI layer, CIDR overlap, cost drivers, and recommended use cases for all five connectivity patterns.
+---
+
+import Tooltip from '@/components/Tooltip.astro';
+
+Use this table to narrow down which pattern fits your scenario before reading the per-pattern walkthrough pages.
+
+## Comparison table
+
+| Pattern | OSI layer | CIDR overlap | Primary cost driver | Recommended use case |
+|---------|-----------|--------------|---------------------|----------------------|
+| VPC Peering | L3 | No | Same-region data transfer only; no hourly peering charge | Point-to-point private connectivity between two VPCs with non-overlapping CIDR blocks |
+| PrivateLink | L4 | Yes | Network Load Balancer, interface VPC endpoint hourly charges, and data processing fees | Exposing a single service to external consumers without sharing routes or CIDR space |
+| VPC Lattice | L7 | Yes | Service network, registered service, and data processing charges | Layer-7 service discovery, routing, and auth policies across VPCs and accounts |
+| Transit Gateway | L3 | No | Transit Gateway hourly charge, VPC attachment fees, and data processing | Hub-and-spoke routing across many VPCs and accounts from a central transit hub |
+| Cloud WAN | L3 | No | Core network, edge location, segment attachment, and multi-region data transfer | Global multi-region connectivity with segment-based isolation and centralized route policies |
+
+## When to choose each pattern
+
+### VPC Peering
+
+:::tip
+Choose <Tooltip term="vpc-peering" label="VPC Peering" /> when you need simple, low-cost L3 connectivity between exactly two VPCs in the same region, both VPCs have non-overlapping <Tooltip term="cidr" label="CIDR" /> blocks, and you do not need a central routing hub or service-level abstraction.
+:::
+
+### PrivateLink
+
+:::tip
+Choose <Tooltip term="privatelink" label="PrivateLink" /> when you want to publish a service to consumers in other accounts or VPCs that may have overlapping CIDR ranges, and you only need consumers to reach a specific endpoint — not full VPC-to-VPC routing.
+:::
+
+### VPC Lattice
+
+:::tip
+Choose <Tooltip term="vpc-lattice" label="VPC Lattice" /> when you need Layer-7 routing, service discovery, and fine-grained auth policies across multiple VPCs and accounts, and consumers should connect to named services rather than IP addresses or CIDR ranges.
+:::
+
+### Transit Gateway
+
+:::tip
+Choose <Tooltip term="transit-gateway" label="Transit Gateway" /> when you are building a hub-and-spoke network with many VPC <Tooltip term="attachment" label="attachments" /> across accounts, need centralized route propagation, and all connected VPCs have non-overlapping CIDR blocks.
+:::
+
+### Cloud WAN
+
+:::tip
+Choose <Tooltip term="cloud-wan" label="Cloud WAN" /> when you need global multi-region connectivity with <Tooltip term="segment" label="segment" />-based traffic isolation (for example, allowing shared and workloads segments to communicate while keeping a sandbox segment isolated) and are willing to accept higher cost and operational complexity than regional patterns.
+:::
+
+## Quick selection guide
+
+| If you need… | Start with… |
+|--------------|-------------|
+| Simplest cross-account test | PrivateLink |
+| Full VPC mesh at L3, two VPCs only | VPC Peering |
+| L7 policies and service names | VPC Lattice |
+| Many VPCs, one regional hub | Transit Gateway |
+| Multi-region with segment isolation | Cloud WAN |
+
+All patterns use the same two accounts (`123456789012` shared-services, `987654321098` dev) and deploy one at a time. See the [Pattern Execution Model](/walkthrough/execution-model/) page for the recommended deploy-verify-teardown workflow.

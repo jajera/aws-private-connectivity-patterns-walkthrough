@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none" role="img" aria-label="AWS Private Connectivity Patterns Walkthrough">
+  <defs>
+    <linearGradient id="ogBg" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#232F3E"/>
+      <stop offset="1" stop-color="#131a22"/>
+    </linearGradient>
+    <radialGradient id="ogGlow" cx="0.5" cy="0.4" r="0.55" gradientUnits="objectBoundingBox">
+      <stop stop-color="#8C4FFF" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#8C4FFF" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="ogGrid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="1" fill="#94a3b8" opacity="0.12"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="630" rx="12" fill="url(#ogBg)"/>
+  <rect width="1200" height="630" fill="url(#ogGlow)"/>
+  <rect x="1" y="1" width="1198" height="628" rx="11" stroke="#FF9900" stroke-width="1" fill="none" opacity="0.35"/>
+
+  <text x="600" y="64" text-anchor="middle" fill="#f4f1f8" font-family="sans-serif" font-size="40" font-weight="700">AWS Private Connectivity Patterns</text>
+  <text x="600" y="104" text-anchor="middle" fill="#b8afc8" font-family="sans-serif" font-size="22">Deploy | verify | compare five cross-account networking patterns</text>
+
+  <rect x="250" y="128" width="148" height="34" rx="17" fill="#243040" stroke="#FF9900" stroke-width="1"/>
+  <text x="324" y="150" text-anchor="middle" fill="#e8e0f4" font-family="sans-serif" font-size="15" font-weight="600">2 accounts</text>
+  <rect x="414" y="128" width="148" height="34" rx="17" fill="#243040" stroke="#8C4FFF" stroke-width="1"/>
+  <text x="488" y="150" text-anchor="middle" fill="#e8e0f4" font-family="sans-serif" font-size="15" font-weight="600">5 patterns</text>
+  <rect x="578" y="128" width="372" height="34" rx="17" fill="#243040" stroke="#48A9A6" stroke-width="1"/>
+  <text x="764" y="150" text-anchor="middle" fill="#e8e0f4" font-family="sans-serif" font-size="15" font-weight="600">hub-and-spoke | one at a time</text>
+
+  <rect x="48" y="184" width="1104" height="372" rx="14" fill="#1a2332" stroke="#3d4f63" stroke-width="1"/>
+  <rect x="48" y="184" width="1104" height="372" rx="14" fill="url(#ogGrid)" opacity="0.5"/>
+
+  <!-- Shared Services account -->
+  <rect x="80" y="220" width="280" height="300" rx="12" fill="#1e2936" stroke="#FF9900" stroke-width="1.5"/>
+  <text x="220" y="256" text-anchor="middle" fill="#FF9900" font-family="sans-serif" font-size="18" font-weight="700">Shared Services</text>
+  <text x="220" y="280" text-anchor="middle" fill="#94a3b8" font-family="sans-serif" font-size="14">Provider | hub</text>
+  <rect x="112" y="304" width="216" height="56" rx="8" fill="#243040" stroke="#3d4f63" stroke-width="1"/>
+  <text x="220" y="328" text-anchor="middle" fill="#f4f1f8" font-family="sans-serif" font-size="15" font-weight="600">Provider VPC</text>
+  <text x="220" y="348" text-anchor="middle" fill="#9b92b0" font-family="sans-serif" font-size="12">apps | endpoints | hubs</text>
+  <rect x="112" y="376" width="216" height="56" rx="8" fill="#243040" stroke="#3d4f63" stroke-width="1"/>
+  <text x="220" y="400" text-anchor="middle" fill="#f4f1f8" font-family="sans-serif" font-size="15" font-weight="600">Core / share</text>
+  <text x="220" y="420" text-anchor="middle" fill="#9b92b0" font-family="sans-serif" font-size="12">TGW | Lattice | Cloud WAN</text>
+  <rect x="112" y="448" width="216" height="44" rx="8" fill="#243040" stroke="#8C4FFF" stroke-width="1" stroke-dasharray="5 4"/>
+  <text x="220" y="475" text-anchor="middle" fill="#e8e0f4" font-family="sans-serif" font-size="13" font-weight="600">RAM share (us-east-1)</text>
+
+  <!-- Dev account -->
+  <rect x="840" y="220" width="280" height="300" rx="12" fill="#1e2936" stroke="#48A9A6" stroke-width="1.5"/>
+  <text x="980" y="256" text-anchor="middle" fill="#48A9A6" font-family="sans-serif" font-size="18" font-weight="700">Dev Account</text>
+  <text x="980" y="280" text-anchor="middle" fill="#94a3b8" font-family="sans-serif" font-size="14">Consumer | spoke</text>
+  <rect x="872" y="304" width="216" height="56" rx="8" fill="#243040" stroke="#3d4f63" stroke-width="1"/>
+  <text x="980" y="328" text-anchor="middle" fill="#f4f1f8" font-family="sans-serif" font-size="15" font-weight="600">Consumer VPC</text>
+  <text x="980" y="348" text-anchor="middle" fill="#9b92b0" font-family="sans-serif" font-size="12">endpoints | attachments</text>
+  <rect x="872" y="376" width="216" height="56" rx="8" fill="#243040" stroke="#3d4f63" stroke-width="1"/>
+  <text x="980" y="400" text-anchor="middle" fill="#f4f1f8" font-family="sans-serif" font-size="15" font-weight="600">Test EC2</text>
+  <text x="980" y="420" text-anchor="middle" fill="#9b92b0" font-family="sans-serif" font-size="12">Session Manager | curl</text>
+  <rect x="872" y="448" width="216" height="44" rx="8" fill="#243040" stroke="#48A9A6" stroke-width="1" stroke-dasharray="5 4"/>
+  <text x="980" y="475" text-anchor="middle" fill="#e8e0f4" font-family="sans-serif" font-size="13" font-weight="600">Accept | associate | route</text>
+
+  <!-- Pattern bridge -->
+  <text x="600" y="236" text-anchor="middle" fill="#94a3b8" font-family="sans-serif" font-size="12" font-weight="600" letter-spacing="0.1em">FIVE PATTERNS</text>
+
+  <rect x="400" y="256" width="400" height="44" rx="8" fill="#243040" stroke="#FF9900" stroke-width="1.25"/>
+  <text x="600" y="284" text-anchor="middle" fill="#f4f1f8" font-family="sans-serif" font-size="16" font-weight="600">VPC Peering</text>
+
+  <rect x="400" y="312" width="400" height="44" rx="8" fill="#243040" stroke="#8C4FFF" stroke-width="1.25"/>
+  <text x="600" y="340" text-anchor="middle" fill="#f4f1f8" font-family="sans-serif" font-size="16" font-weight="600">PrivateLink</text>
+
+  <rect x="400" y="368" width="400" height="44" rx="8" fill="#243040" stroke="#7B68EE" stroke-width="1.25"/>
+  <text x="600" y="396" text-anchor="middle" fill="#f4f1f8" font-family="sans-serif" font-size="16" font-weight="600">VPC Lattice</text>
+
+  <rect x="400" y="424" width="400" height="44" rx="8" fill="#243040" stroke="#48A9A6" stroke-width="1.25"/>
+  <text x="600" y="452" text-anchor="middle" fill="#f4f1f8" font-family="sans-serif" font-size="16" font-weight="600">Transit Gateway</text>
+
+  <rect x="400" y="480" width="400" height="44" rx="8" fill="#243040" stroke="#E7157B" stroke-width="1.25"/>
+  <text x="600" y="508" text-anchor="middle" fill="#f4f1f8" font-family="sans-serif" font-size="16" font-weight="600">Cloud WAN</text>
+
+  <!-- Connectors -->
+  <line x1="360" y1="370" x2="400" y2="370" stroke="#5a6a7e" stroke-width="2"/>
+  <line x1="800" y1="370" x2="840" y2="370" stroke="#5a6a7e" stroke-width="2"/>
+  <polygon points="395,365 400,370 395,375" fill="#5a6a7e"/>
+  <polygon points="835,365 840,370 835,375" fill="#5a6a7e"/>
+
+  <text x="600" y="580" text-anchor="middle" fill="#9b92b0" font-family="sans-serif" font-size="18">Private cross-account connectivity | Terraform demo companion</text>
+  <text x="600" y="608" text-anchor="middle" fill="#64748b" font-family="sans-serif" font-size="16">jajera.github.io/aws-private-connectivity-patterns-walkthrough</text>
+</svg>

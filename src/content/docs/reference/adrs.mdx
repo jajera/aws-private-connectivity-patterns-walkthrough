@@ -1,0 +1,113 @@
+---
+title: Decision Log & ADRs
+description: Architectural decision records from the upstream demo repository explaining key design choices.
+---
+
+These Architectural Decision Records (ADRs) are extracted from the upstream demo repository. They explain why specific design choices were made in the Terraform implementation.
+
+[Upstream architecture.md](https://github.com/jajera/aws-private-connectivity-patterns-demo/blob/main/docs/architecture.md)
+
+## ADR-1: NLB in front of ALB for PrivateLink
+
+### Context
+
+AWS PrivateLink endpoint services require a Network Load Balancer (NLB) as the service front end. The demo application runs behind an Application Load Balancer (ALB) for HTTP routing. A direct ALB cannot be registered as a PrivateLink endpoint service target.
+
+### Decision
+
+Place an NLB in front of the ALB for the PrivateLink pattern. The NLB listener forwards traffic to the ALB target group (target type `alb`), which then routes to the application instances.
+
+### Consequences
+
+- **Positive:** Satisfies the PrivateLink requirement for an NLB-backed endpoint service while preserving ALB-layer HTTP routing.
+- **Positive:** Demonstrates the common production pattern of NLB → ALB for PrivateLink service exposure.
+- **Negative:** Adds an NLB hourly cost and an extra hop in the traffic path compared to a standalone NLB.
+- **Negative:** Target group configuration is more complex than a single-load-balancer setup.
+
+## ADR-2: RAM for Lattice and TGW
+
+### Context
+
+VPC Lattice service networks and Transit Gateway attachments are cross-account resources that must be shared from the provider account to the consumer account. Manual console sharing is error-prone and not reproducible in Terraform workflows.
+
+### Decision
+
+Use AWS Resource Access Manager (RAM) to share Lattice service networks and TGW attachments from the **Shared_Services_Account** to the **Dev_Account**. The consumer Terraform root accepts the RAM share using an idempotent `local-exec` provisioner.
+
+### Consequences
+
+- **Positive:** RAM sharing is the AWS-recommended cross-account mechanism for Lattice and TGW resources.
+- **Positive:** Idempotent acceptance prevents failures on re-apply when the share is already accepted.
+- **Negative:** `local-exec` introduces a dependency on the AWS CLI being available during `terraform apply`.
+- **Negative:** RAM share acceptance is an out-of-band step that must complete before consumer resources can associate with the shared resource.
+
+## ADR-3: Separate pattern roots
+
+### Context
+
+Five connectivity patterns serve different use cases with distinct CIDR allocations, state files, and resource topologies. A single shared Terraform root with feature flags would create coupling, state contention, and complex mutual-exclusion logic.
+
+### Decision
+
+Each pattern owns independent Terraform roots under `terraform/patterns/<pattern-name>/` with separate state, VPC CIDR blocks, and resource naming. No mutual-exclusion flags or shared lab toggles exist between patterns.
+
+### Consequences
+
+- **Positive:** Engineers can deploy, test, and tear down one pattern without affecting others.
+- **Positive:** Each pattern's state is isolated, reducing blast radius of `terraform destroy`.
+- **Positive:** CIDR blocks are pre-allocated per pattern, avoiding overlap conflicts.
+- **Negative:** Some modules (VPC, test EC2) are duplicated across patterns rather than shared in a single root.
+- **Negative:** Switching patterns requires a full teardown and redeploy rather than a configuration toggle.
+
+## ADR-4: SSM + NAT
+
+### Context
+
+Test EC2 instances run in private subnets without public IP addresses. Engineers need shell access for verification (`curl` tests) and outbound connectivity for package/bootstrap operations during instance initialization.
+
+### Decision
+
+Use AWS Systems Manager Session Manager for interactive shell access to test instances. Deploy a single NAT Gateway per VPC to provide outbound internet connectivity for bootstrap tasks.
+
+### Consequences
+
+- **Positive:** Session Manager eliminates the need for bastion hosts, SSH key management, or public subnets.
+- **Positive:** NAT Gateway provides reliable outbound connectivity for private-subnet instances.
+- **Negative:** NAT Gateway incurs hourly and data-processing charges in every VPC.
+- **Negative:** Session Manager requires the SSM agent, IAM instance profile, and VPC endpoints or internet route for SSM API calls.
+
+## ADR-5: No assume_role
+
+### Context
+
+Cross-account Terraform deployments typically use `assume_role` in the provider block to switch between accounts within a single apply. This demo uses two separate AWS CLI profiles (`shared-services` and `dev`) with distinct account credentials.
+
+### Decision
+
+Do not use `assume_role` in Terraform provider configuration. Cross-stack values pass manually via `terraform output` from the provider root, then supplied as `-var` arguments to the consumer root.
+
+### Consequences
+
+- **Positive:** Each apply runs under an explicit, auditable CLI profile — no hidden role chaining.
+- **Positive:** Engineers see exactly which account and credentials are active during each step.
+- **Positive:** Simpler provider configuration without cross-account IAM trust policies in Terraform.
+- **Negative:** Manual output-to-var handoffs add steps compared to automated remote state or `assume_role`.
+- **Negative:** Values can become stale if provider resources change without re-running consumer apply.
+
+## ADR-6: Side-specific modules
+
+### Context
+
+Each pattern has provider-side and consumer-side resources with different responsibilities (creating vs. accepting connections, publishing vs. consuming services). A single module with a `deployment_side` variable would accumulate conditional logic.
+
+### Decision
+
+Use side-specific modules named `*-provider` and `*-consumer` (for example, `peering-provider`, `peering-consumer`) instead of a unified module with `deployment_side` conditionals.
+
+### Consequences
+
+- **Positive:** Each module has a single, clear responsibility with no branching on deployment side.
+- **Positive:** Provider and consumer Terraform roots are easier to read and maintain independently.
+- **Positive:** Module interfaces are explicit — no optional blocks gated by a side variable.
+- **Negative:** Some resource definitions are duplicated across provider and consumer modules.
+- **Negative:** More module files to maintain compared to a single parameterized module.

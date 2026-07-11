@@ -1,0 +1,122 @@
+---
+title: VPC Peering Walkthrough
+description: Deploy L3 cross-account VPC peering with acceptance and requester-side DNS resolution.
+---
+
+VPC Peering is an L3 point-to-point pattern. Cross-account peering requires the accepter (shared-services) to accept the connection, then a separate consumer apply to enable requester-side DNS resolution so the consumer can resolve the shared internal ALB hostname.
+
+- **Shared-services CIDR:** `10.10.0.0/16`
+- **Consumer CIDR:** `10.20.0.0/16`
+- **Region:** `ap-southeast-2`
+
+![VPC Peering architecture showing two peered VPCs with route tables and cross-account connectivity](/aws-private-connectivity-patterns-walkthrough/diagrams/peering.svg)
+
+Upstream Terraform directory is `peering`:
+
+- [shared-services](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/peering/shared-services/)
+- [consumer](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/peering/consumer/)
+
+:::caution
+DNS resolution configuration is a separate step after peering acceptance. Connectivity to the shared ALB by private DNS name will not work until the consumer apply with `enable_requester_dns=true` completes.
+:::
+
+## Step 1 — Shared-Services Apply (VPC + App)
+
+Creates the provider VPC, internal ALB, demo API, and security groups — but not yet the peering connection.
+
+```bash
+export AWS_REGION=ap-southeast-2
+export DEV_ACCOUNT_ID=987654321098
+
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/peering/shared-services init
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/peering/shared-services apply \
+  -var="consumer_account_id=$DEV_ACCOUNT_ID"
+```
+
+Capture outputs:
+
+```bash
+export SHARED_SERVICES_ACCOUNT_ID=$(AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/peering/shared-services output -raw account_id)
+export SHARED_SERVICES_VPC_ID=$(AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/peering/shared-services output -raw vpc_id)
+export ALB_DNS_NAME=$(AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/peering/shared-services output -raw alb_dns_name)
+```
+
+Example outputs:
+
+```text
+account_id = 123456789012
+vpc_id = vpc-EXAMPLE1234567890
+alb_dns_name = internal-apcp-peer-ss-app-alb-EXAMPLE.ap-southeast-2.elb.amazonaws.com
+```
+
+## Step 2 — Consumer Apply (Create Peering Request)
+
+Creates the consumer VPC, initiates the cross-account peering connection, and adds consumer-side routes.
+
+```bash
+AWS_PROFILE=dev terraform -chdir=terraform/patterns/peering/consumer init
+AWS_PROFILE=dev terraform -chdir=terraform/patterns/peering/consumer apply \
+  -var="shared_services_account_id=$SHARED_SERVICES_ACCOUNT_ID" \
+  -var="shared_services_vpc_id=$SHARED_SERVICES_VPC_ID"
+```
+
+Capture the peering connection ID:
+
+```bash
+export PEERING_CONNECTION_ID=$(AWS_PROFILE=dev terraform -chdir=terraform/patterns/peering/consumer output -raw peering_connection_id)
+```
+
+Example output:
+
+```text
+peering_connection_id = pcx-EXAMPLE1234567890
+```
+
+## Step 3 — Shared-Services Apply (Accept Peering)
+
+Re-applies shared-services with the peering connection ID to accept the connection, add accepter routes, and update ALB security groups.
+
+```bash
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/peering/shared-services apply \
+  -var="consumer_account_id=$DEV_ACCOUNT_ID" \
+  -var="peering_connection_id=$PEERING_CONNECTION_ID"
+```
+
+Verify peering status:
+
+```bash
+AWS_PROFILE=shared-services aws ec2 describe-vpc-peering-connections \
+  --vpc-peering-connection-ids "$PEERING_CONNECTION_ID" \
+  --query "VpcPeeringConnections[0].Status.Code" \
+  --output text
+```
+
+Expected: `active`
+
+## Step 4 — Consumer Apply (Enable Requester DNS)
+
+Re-applies consumer with DNS resolution enabled on the requester side:
+
+```bash
+AWS_PROFILE=dev terraform -chdir=terraform/patterns/peering/consumer apply \
+  -var="shared_services_account_id=$SHARED_SERVICES_ACCOUNT_ID" \
+  -var="shared_services_vpc_id=$SHARED_SERVICES_VPC_ID" \
+  -var="enable_requester_dns=true"
+```
+
+## What Each Step Creates
+
+| Step | Profile | Action |
+|------|---------|--------|
+| 1 | `shared-services` | Provider VPC, ALB, demo API |
+| 2 | `dev` | Consumer VPC, peering request, consumer routes |
+| 3 | `shared-services` | Accept peering, accepter routes, ALB SG update |
+| 4 | `dev` | Enable requester-side DNS resolution |
+
+## Verify
+
+See [Verification — VPC Peering](/walkthrough/verification/#vpc-peering) for the SSM `curl` test against `$ALB_DNS_NAME`.
+
+## Teardown
+
+See [Teardown — VPC Peering](/walkthrough/teardown/#vpc-peering). Destroy consumer before shared-services.

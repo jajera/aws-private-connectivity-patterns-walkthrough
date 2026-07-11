@@ -1,0 +1,122 @@
+<mxfile host="65bd71144e">
+    <diagram id="account-topology" name="account-topology">
+        <mxGraphModel dx="1419" dy="1129" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1280" pageHeight="720" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title-group" value="" style="group;fontFamily=Helvetica;" parent="1" connectable="0" vertex="1">
+                    <mxGeometry x="40" y="20" width="1200" height="83" as="geometry"/>
+                </mxCell>
+                <mxCell id="title-text" value="Account Topology" style="text;html=1;align=left;verticalAlign=top;fontSize=28;fontStyle=1;fontFamily=Helvetica;" parent="title-group" vertex="1">
+                    <mxGeometry width="1000" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="subtitle-text" value="Shared-services (provider) ↔ Dev (consumer)  ·  Primary_Region ap-southeast-2  ·  Cloud WAN multi-region + RAM in us-east-1  |  Icons: AWS Architecture Icons" style="text;html=1;align=left;verticalAlign=top;fontSize=14;fontFamily=Helvetica;fontColor=#545B64;" parent="title-group" vertex="1">
+                    <mxGeometry y="40" width="1180" height="24" as="geometry"/>
+                </mxCell>
+                <mxCell id="title-sep" value="" style="line;strokeWidth=2;html=1;strokeColor=#FF9900;fontFamily=Helvetica;" parent="title-group" vertex="1">
+                    <mxGeometry y="70" width="1180" height="10" as="geometry"/>
+                </mxCell>
+                <mxCell id="acc-dev" value="Dev Account · 987654321098 · profile: dev" style="fillColor=#f5f5f5;strokeColor=light-dark(#666666,#D4D4D4);rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#333333;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="140" width="360" height="360" as="geometry"/>
+                </mxCell>
+                <mxCell id="vpc-dev" value="Consumer VPC · Primary_Region ap-southeast-2" style="fillColor=light-dark(#8C4FFF0D,#8C4FFF0D);strokeColor=#8C4FFF;fillStyle=auto;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#8C4FFF;fontFamily=Helvetica;container=1;collapsible=0;" parent="acc-dev" vertex="1">
+                    <mxGeometry x="20" y="40" width="320" height="290" as="geometry"/>
+                </mxCell>
+                <mxCell id="g-vpc-dev" value="Network" style="fillColor=#EDE7F6;strokeColor=#8C4FFF;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#8C4FFF;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" parent="vpc-dev" vertex="1">
+                    <mxGeometry x="25" y="50" width="120" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="i-vpc-dev" value="Amazon VPC&lt;div&gt;&lt;i&gt;consumer&lt;/i&gt;&lt;/div&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#8C4FFF;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.vpc;fontFamily=Helvetica;shadow=1;" parent="g-vpc-dev" vertex="1">
+                    <mxGeometry x="36" y="30" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="g-test" value="Client" style="fillColor=#FFF2E8;strokeColor=#ED7100;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#ED7100;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" parent="vpc-dev" vertex="1">
+                    <mxGeometry x="175" y="50" width="120" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="i-test" value="Amazon EC2&lt;div&gt;&lt;i&gt;test instance&lt;/i&gt;&lt;/div&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ec2;fontFamily=Helvetica;shadow=1;" parent="g-test" vertex="1">
+                    <mxGeometry x="36" y="30" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="dev-note" value="Cloud_WAN_Regions also attach&lt;br&gt;workloads / sandbox VPCs here" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontFamily=Helvetica;fontColor=#0073BB;" parent="vpc-dev" vertex="1">
+                    <mxGeometry x="30" y="200" width="260" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="g-conn" value="Connectivity" style="fillColor=#EDE7F6;strokeColor=#8C4FFF;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#8C4FFF;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="460" y="224" width="140" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="i-conn" value="Private path&lt;div&gt;&lt;i&gt;pattern-specific&lt;/i&gt;&lt;/div&gt;" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#8C4FFF;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.peering;fontFamily=Helvetica;" parent="g-conn" vertex="1">
+                    <mxGeometry x="46" y="36" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="g-ram" value="Share" style="fillColor=#FFEBEE;strokeColor=#DD344C;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#DD344C;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="460" y="420" width="140" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="i-ram" value="AWS RAM&lt;div&gt;&lt;i&gt;RAM_Region us-east-1&lt;/i&gt;&lt;/div&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#DD344C;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.resource_access_manager;fontFamily=Helvetica;shadow=1;" parent="g-ram" vertex="1">
+                    <mxGeometry x="46" y="28" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="acc-ss" value="Shared Services Account · 123456789012 · profile: shared-services" style="fillColor=#f5f5f5;strokeColor=light-dark(#666666,#D4D4D4);rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#333333;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1;" parent="1" vertex="1">
+                    <mxGeometry x="660" y="140" width="560" height="360" as="geometry"/>
+                </mxCell>
+                <mxCell id="vpc-ss" value="Shared-services VPC · Primary_Region ap-southeast-2" style="fillColor=light-dark(#8C4FFF0D,#8C4FFF0D);strokeColor=#8C4FFF;fillStyle=auto;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#8C4FFF;fontFamily=Helvetica;container=1;collapsible=0;" parent="acc-ss" vertex="1">
+                    <mxGeometry x="20" y="40" width="520" height="290" as="geometry"/>
+                </mxCell>
+                <mxCell id="g-vpc-ss" value="Network" style="fillColor=#EDE7F6;strokeColor=#8C4FFF;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#8C4FFF;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" parent="vpc-ss" vertex="1">
+                    <mxGeometry x="40" y="50" width="120" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="i-vpc-ss" value="Amazon VPC&lt;div&gt;&lt;i&gt;provider&lt;/i&gt;&lt;/div&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#8C4FFF;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.vpc;fontFamily=Helvetica;shadow=1;" parent="g-vpc-ss" vertex="1">
+                    <mxGeometry x="36" y="30" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="g-alb" value="Load balancer" style="fillColor=#EDE7F6;strokeColor=#8C4FFF;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#8C4FFF;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" parent="vpc-ss" vertex="1">
+                    <mxGeometry x="200" y="50" width="120" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="i-alb" value="ALB&lt;div&gt;&lt;i&gt;internal DNS&lt;/i&gt;&lt;/div&gt;" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#8C4FFF;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.application_load_balancer;fontFamily=Helvetica;" parent="g-alb" vertex="1">
+                    <mxGeometry x="36" y="30" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="g-app" value="API" style="fillColor=#FFF2E8;strokeColor=#ED7100;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#ED7100;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" parent="vpc-ss" vertex="1">
+                    <mxGeometry x="360" y="50" width="120" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="i-app" value="Amazon EC2&lt;div&gt;&lt;i&gt;shared app&lt;/i&gt;&lt;/div&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ec2;fontFamily=Helvetica;shadow=1;" parent="g-app" vertex="1">
+                    <mxGeometry x="36" y="30" width="48" height="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="ss-note" value="Cloud WAN: shared segment + core network owner&lt;br&gt;RAM share of global core network from us-east-1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontFamily=Helvetica;fontColor=#0073BB;" parent="vpc-ss" vertex="1">
+                    <mxGeometry x="40" y="200" width="440" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#545B64;strokeWidth=1.5;fontFamily=Helvetica;endArrow=classic;" parent="1" source="i-test" target="i-conn" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1-l" value="Provider → Consumer" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#FFFFFF;fontSize=11;fontFamily=Helvetica;fontColor=#0073BB;" parent="e1" connectable="0" vertex="1">
+                    <mxGeometry x="-0.1" relative="1" as="geometry">
+                        <mxPoint x="27" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#545B64;strokeWidth=1.5;fontFamily=Helvetica;endArrow=classic;" parent="1" source="i-conn" target="i-alb" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="620" y="300" as="sourcePoint"/>
+                        <Array as="points">
+                            <mxPoint x="700" y="284"/>
+                            <mxPoint x="700" y="220"/>
+                            <mxPoint x="860" y="220"/>
+                            <mxPoint x="860" y="284"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#545B64;strokeWidth=1.5;fontFamily=Helvetica;endArrow=classic;" parent="1" source="i-alb" target="i-app" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e-ram" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#DD344C;strokeWidth=1.5;dashed=1;dashPattern=8 8;fontFamily=Helvetica;endArrow=classic;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="i-ram" target="i-vpc-ss" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="530" y="390"/>
+                            <mxPoint x="740" y="390"/>
+                            <mxPoint x="740" y="284"/>
+                        </Array>
+                        <mxPoint x="780" y="308" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e-ram-l" value="global core-network share" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=#FFFFFF;fontSize=11;fontFamily=Helvetica;fontColor=#DD344C;" parent="e-ram" connectable="0" vertex="1">
+                    <mxGeometry x="-0.05" relative="1" as="geometry">
+                        <mxPoint x="-18" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="regions" value="Regions: Primary_Region = ap-southeast-2  ·  Cloud_WAN_Regions = ap-southeast-2 / ap-southeast-6 / ap-southeast-1  ·  RAM_Region = us-east-1 (global share only, not workloads)" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;fontFamily=Helvetica;fontColor=#545B64;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="540" width="1180" height="30" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

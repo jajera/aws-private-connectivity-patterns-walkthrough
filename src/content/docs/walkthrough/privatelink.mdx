@@ -1,0 +1,80 @@
+---
+title: PrivateLink Walkthrough
+description: Deploy the simplest cross-account connectivity pattern using a VPC endpoint service and interface endpoint.
+---
+
+PrivateLink is an L4 pattern: the consumer reaches the shared-services API through an **interface VPC endpoint** with no CIDR routing between VPCs.
+
+- **Shared-services CIDR:** `10.11.0.0/16`
+- **Consumer CIDR:** `10.21.0.0/16`
+- **Region:** `ap-southeast-2`
+
+![PrivateLink architecture with NLB endpoint service and cross-account interface VPC endpoint](/aws-private-connectivity-patterns-walkthrough/diagrams/privatelink.svg)
+
+Upstream Terraform:
+
+- [shared-services](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/privatelink/shared-services/)
+- [consumer](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/privatelink/consumer/)
+
+:::tip
+PrivateLink is the simplest pattern and the recommended first deployment. It validates cross-account connectivity with only two Terraform applies and no RAM acceptance or route-table configuration.
+:::
+
+## Step 1 — Shared-Services Apply
+
+Creates the provider-side VPC, internal ALB, NLB (required for endpoint services), VPC endpoint service, and demo API.
+
+```bash
+export AWS_REGION=ap-southeast-2
+export DEV_ACCOUNT_ID=987654321098
+
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/privatelink/shared-services init
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/privatelink/shared-services apply \
+  -var="consumer_account_id=$DEV_ACCOUNT_ID"
+```
+
+Capture the endpoint service name:
+
+```bash
+export ENDPOINT_SERVICE_NAME=$(AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/privatelink/shared-services output -raw endpoint_service_name)
+```
+
+Example output:
+
+```text
+endpoint_service_name = com.amazonaws.vpce.ap-southeast-2.vpce-svc-EXAMPLE
+```
+
+## Step 2 — Consumer Apply
+
+Creates the consumer VPC, interface VPC endpoint connected to the endpoint service, and test EC2 instance.
+
+```bash
+AWS_PROFILE=dev terraform -chdir=terraform/patterns/privatelink/consumer init
+AWS_PROFILE=dev terraform -chdir=terraform/patterns/privatelink/consumer apply \
+  -var="endpoint_service_name=$ENDPOINT_SERVICE_NAME"
+```
+
+Example outputs:
+
+```text
+endpoint_dns_name = vpce-EXAMPLE-nroe17eh.vpce-svc-EXAMPLE.ap-southeast-2.vpce.amazonaws.com
+test_ec2_instance_id = i-EXAMPLE1234567890
+```
+
+## What Each Apply Creates
+
+| Apply | Profile | Resources created |
+|-------|---------|-------------------|
+| Shared-services | `shared-services` | VPC (`10.11.0.0/16`), NAT gateway, internal ALB + NLB, VPC endpoint service, demo API on EC2 |
+| Consumer | `dev` | VPC (`10.21.0.0/16`), interface VPC endpoint, security groups, test EC2 in private subnet |
+
+Traffic flows from the consumer test EC2 → interface endpoint → endpoint service → NLB → ALB → provider API. No peering or TGW routes are involved.
+
+## Verify
+
+See [Verification — PrivateLink](/walkthrough/verification/#privatelink) for the SSM `curl` test.
+
+## Teardown
+
+See [Teardown — PrivateLink](/walkthrough/teardown/#privatelink). Destroy consumer before shared-services.

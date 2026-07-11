@@ -1,0 +1,97 @@
+---
+title: VPC Lattice Walkthrough
+description: Deploy L7 cross-account connectivity with a Lattice service network shared via AWS RAM.
+---
+
+VPC Lattice is an L7 pattern: shared-services publishes a Lattice service; the service network is shared to the dev account via **AWS RAM**. The consumer module accepts the RAM share and associates its VPC with the service network.
+
+- **Shared-services CIDR:** `10.12.0.0/16`
+- **Consumer CIDR:** `10.22.0.0/16`
+- **Region:** `ap-southeast-2`
+
+![VPC Lattice architecture with service network RAM share and cross-account VPC association](/aws-private-connectivity-patterns-walkthrough/diagrams/lattice.svg)
+
+Upstream Terraform:
+
+- [shared-services](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/lattice/shared-services/)
+- [consumer](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/lattice/consumer/)
+
+:::tip
+The consumer Terraform module accepts the RAM resource share before creating the VPC association. The share must be in an accepted state before VPC association can proceed — the consumer apply handles acceptance automatically via an idempotent `local-exec` provisioner.
+:::
+
+## Step 1 — Shared-Services Apply
+
+Creates the provider VPC, Lattice service network, Lattice service, RAM resource share targeting the dev account, and demo API.
+
+```bash
+export AWS_REGION=ap-southeast-2
+export DEV_ACCOUNT_ID=987654321098
+
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/lattice/shared-services init
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/lattice/shared-services apply \
+  -var="consumer_account_id=$DEV_ACCOUNT_ID"
+```
+
+Capture outputs:
+
+```bash
+export LATTICE_SERVICE_NETWORK_ARN=$(AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/lattice/shared-services output -raw lattice_service_network_arn)
+export LATTICE_RESOURCE_SHARE_ARN=$(AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/lattice/shared-services output -raw lattice_resource_share_arn)
+export LATTICE_SERVICE_DNS_NAME=$(AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/lattice/shared-services output -raw lattice_service_dns_name)
+```
+
+Example outputs:
+
+```text
+lattice_service_network_arn = arn:aws:vpc-lattice:ap-southeast-2:123456789012:servicenetwork/sn-EXAMPLE
+lattice_resource_share_arn = arn:aws:ram:ap-southeast-2:123456789012:resource-share/EXAMPLE-lattice-share
+lattice_service_dns_name = apcp-lat-lat-service-EXAMPLE.vpc-lattice-svcs.ap-southeast-2.on.aws
+```
+
+## Step 2 — RAM Share Acceptance
+
+The shared-services apply creates a RAM resource share in account `123456789012` and invites account `987654321098`. Acceptance happens during the consumer apply (Step 3) — the consumer module calls `aws ram accept-resource-share-invitation` before associating the VPC.
+
+Verify the share is pending before consumer apply:
+
+```bash
+AWS_PROFILE=dev aws ram get-resource-shares \
+  --resource-owner OTHER-ACCOUNTS \
+  --region ap-southeast-2 \
+  --query "resourceShares[?name=='EXAMPLE-lattice-share'].status"
+```
+
+Expected: `"PENDING"` before consumer apply, `"ACTIVE"` after.
+
+## Step 3 — Consumer Apply
+
+Creates the consumer VPC, accepts the RAM share, associates the VPC with the service network, and provisions a test EC2 instance.
+
+```bash
+AWS_PROFILE=dev terraform -chdir=terraform/patterns/lattice/consumer init
+AWS_PROFILE=dev terraform -chdir=terraform/patterns/lattice/consumer apply \
+  -var="lattice_service_network_arn=$LATTICE_SERVICE_NETWORK_ARN" \
+  -var="lattice_resource_share_arn=$LATTICE_RESOURCE_SHARE_ARN"
+```
+
+Example output:
+
+```text
+test_ec2_instance_id = i-EXAMPLE1234567890
+```
+
+## What Each Step Creates
+
+| Step | Profile | Resources created |
+|------|---------|-------------------|
+| Shared-services apply | `shared-services` | VPC, Lattice service network, Lattice service, RAM share, demo API |
+| Consumer apply | `dev` | RAM share acceptance, consumer VPC, VPC association, test EC2 |
+
+## Verify
+
+See [Verification — VPC Lattice](/walkthrough/verification/#vpc-lattice) for the SSM `curl` test against `$LATTICE_SERVICE_DNS_NAME`.
+
+## Teardown
+
+See [Teardown — VPC Lattice](/walkthrough/teardown/#vpc-lattice). Destroy consumer (VPC association) before shared-services (service network).

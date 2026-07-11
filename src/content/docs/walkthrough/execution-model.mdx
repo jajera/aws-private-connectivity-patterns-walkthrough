@@ -1,0 +1,56 @@
+---
+title: Pattern Execution Model
+description: How to deploy one pattern at a time with the correct shared-services and consumer apply order.
+---
+
+Each of the five connectivity patterns is an **independent Terraform solution** with its own state, VPC pair, application stack, and test EC2. Patterns do not share infrastructure and are designed to be run **one at a time**.
+
+## Recommended Workflow
+
+For every pattern, follow this cycle:
+
+1. **Deploy** — apply Terraform in the correct order (see below)
+2. **Verify** — run connectivity tests via SSM (see [Verification](/walkthrough/verification/))
+3. **Teardown** — destroy consumer resources, then shared-services (see [Teardown](/walkthrough/teardown/))
+4. **Repeat** with the next pattern
+
+:::danger
+Deploying multiple patterns simultaneously multiplies infrastructure costs across all active patterns. Although each pattern uses non-overlapping CIDR blocks (so concurrent deployment is technically possible), running several patterns at once increases NAT gateway, load balancer, TGW, and Cloud WAN charges. Concurrent deployments may also cause confusion when reusing shell environment variables across patterns.
+:::
+
+## Two Terraform Roots per Pattern
+
+Every pattern under `terraform/patterns/<pattern>/` contains exactly two roots:
+
+| Root | AWS CLI profile | Account |
+|------|-----------------|---------|
+| `shared-services/` | `shared-services` | `123456789012` |
+| `consumer/` | `dev` | `987654321098` |
+
+Upstream Terraform directories:
+
+| Pattern | Shared-services | Consumer |
+|---------|-----------------|----------|
+| PrivateLink | [privatelink/shared-services](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/privatelink/shared-services/) | [privatelink/consumer](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/privatelink/consumer/) |
+| VPC Lattice | [lattice/shared-services](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/lattice/shared-services/) | [lattice/consumer](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/lattice/consumer/) |
+| VPC Peering | [peering/shared-services](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/peering/shared-services/) | [peering/consumer](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/peering/consumer/) |
+| Transit Gateway | [tgw/shared-services](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/tgw/shared-services/) | [tgw/consumer](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/tgw/consumer/) |
+| Cloud WAN | [cloudwan/shared-services](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/cloudwan/shared-services/) | [cloudwan/consumer](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/cloudwan/consumer/) |
+
+## Apply Order: Shared-Services Before Consumer
+
+Within each pattern, always apply **shared-services first**, then **consumer**. Consumer Terraform roots depend on outputs from the shared-services apply (endpoint service names, TGW IDs, core network ARNs, VPC IDs, and so on). Cross-stack values pass via `terraform output` exported to shell variables, then supplied as `-var` arguments — there is no `assume_role` between roots.
+
+Some patterns require additional shared-services or consumer applies after the initial pair (peering acceptance, TGW route configuration, DNS enablement). Each pattern walkthrough documents the full sequence.
+
+## Pattern Complexity Overview
+
+| Pattern | Apply steps | Recommended starting point |
+|---------|-------------|---------------------------|
+| PrivateLink | 2 | Yes — simplest pattern |
+| VPC Lattice | 2 (+ RAM accept in consumer module) | After PrivateLink |
+| VPC Peering | 4 | Medium |
+| Transit Gateway | 3 | Medium |
+| Cloud WAN | 2 (+ multi-region) | Last — highest cost |
+
+Start with [PrivateLink](/walkthrough/privatelink/) to validate cross-account connectivity before progressing to more complex patterns.

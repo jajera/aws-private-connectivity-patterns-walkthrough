@@ -1,0 +1,68 @@
+---
+title: Overview
+description: Purpose, audience, and scope for the AWS private connectivity patterns walkthrough.
+---
+
+import Tooltip from '@/components/Tooltip.astro';
+
+## Purpose
+
+This site is an operational walkthrough companion that teaches platform engineers how to deploy, verify, and compare five independent AWS private cross-account connectivity patterns. Each pattern connects a <Tooltip term="shared-services-account" label="Shared_Services_Account" /> (provider) to a <Tooltip term="dev-account" label="Dev_Account" /> (consumer) using a different networking approach — from simple point-to-point peering to global multi-region <Tooltip term="cloud-wan" label="Cloud WAN" /> segmentation.
+
+You will learn when to choose each pattern, how the account topology maps to your environment, and the exact apply, verification, and teardown sequence for each option. All Terraform code lives in the <Tooltip term="upstream-demo-repo" label="upstream demo repository" />; this site documents how to run it safely.
+
+## Target audience
+
+This walkthrough is written for **platform engineers**, **cloud network architects**, and **DevOps engineers** who:
+
+- Manage multi-account AWS environments with separate provider and consumer accounts
+- Need hands-on experience comparing <Tooltip term="vpc-peering" label="VPC Peering" />, <Tooltip term="privatelink" label="PrivateLink" />, <Tooltip term="vpc-lattice" label="VPC Lattice" />, <Tooltip term="transit-gateway" label="Transit Gateway" />, and <Tooltip term="cloud-wan" label="Cloud WAN" />
+- Are comfortable with AWS CLI profiles, Terraform, and <Tooltip term="session-manager" label="Session Manager" />
+- Want a repeatable lab workflow: deploy one pattern, verify connectivity, tear down, then try the next
+
+You do not need prior experience with every pattern, but familiarity with VPCs, routing, and IAM is assumed.
+
+## Success criteria
+
+After completing this walkthrough, you should be able to:
+
+1. Explain the trade-offs among all five patterns and recommend one for a given use case
+2. Deploy any single pattern end-to-end using the upstream Terraform roots
+3. Verify cross-account connectivity via Session Manager and HTTP checks
+4. Tear down resources in the correct order without orphaned dependencies
+5. Distinguish this documentation site from the upstream Terraform repository
+
+## Non-goals
+
+This site does **not**:
+
+- Provide production-ready Terraform modules for your organization
+- Cover public internet connectivity, VPN, or Direct Connect patterns
+- Replace official AWS documentation for service configuration details
+- Support running multiple patterns simultaneously in the same accounts
+- Include infrastructure-as-code — all Terraform lives upstream
+
+## What this is / What this is not
+
+| What this is | What this is not |
+| --- | --- |
+| A **documentation companion** deployed as an Astro + Starlight site on GitHub Pages | The Terraform source repository |
+| Step-by-step walkthroughs, architecture diagrams, and reference material | A one-click deploy button or managed lab environment |
+| A documentation companion for the upstream Terraform demo | A living substitute for the upstream repository |
+| Safe to publish publicly using <Tooltip term="placeholder-id" label="Placeholder_ID" /> values only | A place to store real account IDs, ARNs, or credentials |
+
+All Terraform code, modules, and pattern roots live in the **[Upstream_Demo_Repo](https://github.com/jajera/aws-private-connectivity-patterns-demo)** (`jajera/aws-private-connectivity-patterns-demo`). Clone that repository to apply infrastructure; use this site to understand and operate it.
+
+## Pattern comparison summary
+
+| Pattern | Scope | Complexity | Primary use case |
+| --- | --- | --- | --- |
+| VPC Peering | Single-region | Low | Point-to-point L3 connectivity between two VPCs with non-overlapping CIDR blocks. |
+| PrivateLink | Single-region | Low | Expose a provider service to consumer VPCs without requiring CIDR coordination. |
+| VPC Lattice | Single-region | Medium | L7 service discovery, routing, and auth policies across VPCs and accounts. |
+| Transit Gateway | Single-region | Medium | Hub-and-spoke routing connecting multiple VPCs through a central gateway. |
+| Cloud WAN | Multi-region | High | Global multi-region routing with segment-based isolation and policy controls. |
+
+:::tip
+Start with <Tooltip term="privatelink" label="PrivateLink" /> to validate cross-account connectivity with the lowest complexity, then explore patterns that match your scaling and OSI-layer requirements.
+:::

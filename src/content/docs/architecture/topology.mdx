@@ -1,0 +1,68 @@
+---
+title: Account Topology
+description: Two-account hub-and-spoke layout, AWS CLI profiles, and regional scope used across all five private connectivity patterns.
+---
+
+import Tooltip from '@/components/Tooltip.astro';
+
+Every pattern in this walkthrough uses the same two-account model. The <Tooltip term="shared-services-account" label="Shared Services Account" /> acts as the provider (hub) and the <Tooltip term="dev-account" label="Dev Account" /> acts as the consumer (spoke). Most patterns deploy in a single region; <Tooltip term="cloud-wan" label="Cloud WAN" /> extends across three workload regions with a separate <Tooltip term="ram-region" label="RAM region" /> for the global <Tooltip term="core-network" label="core network" />.
+
+## Two-account model
+
+| Account | Placeholder ID | Role | Purpose |
+|---------|----------------|------|---------|
+| Shared Services | `123456789012` | Provider (hub) | Hosts the shared application, endpoint service, transit hub, or Cloud WAN core network resources |
+| Dev | `987654321098` | Consumer (spoke) | Hosts the consumer VPC, test EC2 instance, and pattern-specific attachment or endpoint |
+
+Cross-account connectivity always flows from the provider toward the consumer: the shared-services Terraform root creates resources that the consumer root depends on. No `assume_role` is used between accounts; values pass manually via `terraform output` and `-var` flags.
+
+Example identity ARNs used throughout this site:
+
+```text
+arn:aws:iam::123456789012:role/AdministratorAccess-EXAMPLE
+arn:aws:iam::987654321098:role/AdministratorAccess-EXAMPLE
+```
+
+## Regional scope
+
+| Region label | AWS Region | Role in this walkthrough |
+|--------------|------------|--------------------------|
+| <Tooltip term="primary-region" label="Primary_Region" /> | `ap-southeast-2` | Default deployment region for VPC Peering, PrivateLink, VPC Lattice, and Transit Gateway |
+| <Tooltip term="cloud-wan-regions" label="Cloud_WAN_Regions" /> | `ap-southeast-2`, `ap-southeast-6`, `ap-southeast-1` | Workload VPC attachment regions for the Cloud WAN pattern only |
+| <Tooltip term="ram-region" label="RAM_Region" /> | `us-east-1` | Global Cloud WAN core-network share region — **not** a workload region |
+
+The <Tooltip term="ram-region" label="RAM_Region" /> (`us-east-1`) exists because the Cloud WAN <Tooltip term="core-network" label="core network" /> is a **global** AWS resource. <Tooltip term="ram" label="AWS Resource Access Manager (RAM)" /> requires global resource shares to be created and accepted in `us-east-1` so every region can see the share. Workload VPCs and attachments remain in <Tooltip term="cloud-wan-regions" label="Cloud_WAN_Regions" />; nothing in this demo runs application workloads in `us-east-1`.
+
+## Topology diagram
+
+The diagram below shows the account boundaries, CLI profiles, and regional labels used across all patterns.
+
+![Two-account hub-and-spoke topology with shared-services provider VPC, consumer VPC, and RAM share in us-east-1](/aws-private-connectivity-patterns-walkthrough/diagrams/account-topology.svg)
+
+## AWS CLI profiles
+
+Configure both profiles for AWS IAM Identity Center (<Tooltip term="sso" label="SSO" />) access before running any Terraform apply.
+
+| Profile | Target account | Account ID | Role | Assumed IAM permission set |
+|---------|----------------|------------|------|----------------------------|
+| `shared-services` | Shared Services Account | `123456789012` | Provider | `AdministratorAccess` |
+| `dev` | Dev Account | `987654321098` | Consumer | `AdministratorAccess` |
+
+Validate each profile before deploying:
+
+```bash
+aws sts get-caller-identity --profile shared-services
+aws sts get-caller-identity --profile dev
+```
+
+Expected output uses the <Tooltip term="placeholder-id" label="placeholder" /> account IDs above. A successful response confirms SSO login and profile mapping are correct.
+
+## Hub-and-spoke relationship
+
+In every pattern:
+
+1. The **shared-services** profile applies Terraform in account `123456789012` first.
+2. The **dev** profile applies Terraform in account `987654321098` second, consuming outputs from step 1.
+3. Some patterns require an additional manual step (peering acceptance, RAM acceptance, route configuration) documented on the walkthrough pages.
+
+Each pattern is fully independent: separate Terraform state, separate VPC <Tooltip term="cidr" label="CIDR" /> blocks, and separate test EC2 instances. Deploy one pattern at a time, verify connectivity, then tear down before moving to the next.

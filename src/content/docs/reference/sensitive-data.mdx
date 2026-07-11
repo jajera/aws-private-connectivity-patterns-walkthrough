@@ -1,0 +1,73 @@
+---
+title: Sensitive Data & local.env
+description: Guidance on managing AWS account IDs, credentials, and local environment files safely.
+---
+
+The upstream demo repository uses a `local.env` file for account-specific configuration. This page explains how to manage sensitive values and avoid committing them to version control.
+
+## Purpose of local.env
+
+The `local.env` file in the **Upstream_Demo_Repo** stores environment-specific values that Terraform needs but should never appear in committed source code:
+
+| Variable | Purpose | Example placeholder |
+| --- | --- | --- |
+| `SHARED_SERVICES_ACCOUNT_ID` | 12-digit AWS account ID for the provider account | `123456789012` |
+| `DEV_ACCOUNT_ID` | 12-digit AWS account ID for the consumer account | `987654321098` |
+| `SHARED_SERVICES_PROFILE` | AWS CLI profile name for the provider account | `shared-services` |
+| `DEV_PROFILE` | AWS CLI profile name for the consumer account | `dev` |
+
+Copy `local.env.example` to `local.env` and replace placeholder values with your real account IDs and profile names before running Terraform.
+
+## .gitignore protection
+
+The upstream repository excludes `local.env` from version control via `.gitignore`:
+
+```txt
+local.env
+```
+
+This prevents accidental commits of real account IDs. The walkthrough site uses **Placeholder_ID** values (`123456789012`, `987654321098`) in all code blocks, command examples, and output samples.
+
+:::danger
+Never commit real 12-digit AWS account IDs, real ARN strings, AWS access keys, secret keys, or session credentials to any repository — including this documentation site or the upstream demo repo. If real values appear in a commit, treat it as a security incident.
+:::
+
+## Placeholder vs real values
+
+Contributors must distinguish safe placeholders from real identifiers:
+
+| Type | Safe placeholder (commit OK) | Real value (never commit) |
+| --- | --- | --- |
+| Account ID | `123456789012` | Your organization's 12-digit account number |
+| Account ID | `987654321098` | A second real account number |
+| ARN | `arn:aws:iam::123456789012:role/EXAMPLE-Role` | An ARN containing your real account ID |
+| DNS | `vpce-EXAMPLE.ap-southeast-2.vpce.amazonaws.com` | A live VPC endpoint DNS name from your account |
+| Credentials | _(not shown — use placeholders only)_ | Access key ID, secret access key, session token |
+
+The quality gate scans fenced code blocks and rejects any 12-digit number not in the approved allow-list, any ARN with a non-allowlisted account ID, and AWS DNS patterns that are not documented placeholders.
+
+## Example: safe local.env
+
+```bash
+# Safe placeholder values for documentation
+SHARED_SERVICES_ACCOUNT_ID=123456789012
+DEV_ACCOUNT_ID=987654321098
+SHARED_SERVICES_PROFILE=shared-services
+DEV_PROFILE=dev
+```
+
+A real `local.env` on your workstation would contain your organization's account IDs instead of `123456789012` and `987654321098`. Never paste real values into documentation, pull requests, or chat.
+
+## Remediation if secrets are committed
+
+If real account IDs, credentials, or other sensitive values are accidentally committed:
+
+1. **Rotate immediately** — deactivate exposed access keys, invalidate SSO sessions, and rotate any secrets that appeared in the commit
+2. **Remove from history** — use `git filter-repo` or BFG Repo-Cleaner to purge the sensitive data from all commits, then force-push the cleaned branch (coordinate with your team first)
+3. **Verify .gitignore** — confirm `local.env` and any other sensitive files are listed in `.gitignore`
+4. **Re-run the quality gate** — ensure `npm run build` passes with placeholder values only
+5. **Audit access** — review CloudTrail and IAM logs for unauthorized activity during the exposure window
+
+:::caution
+Simply deleting the file in a new commit does not remove it from git history. History rewrite is required for credentials and account IDs that were committed to a shared remote.
+:::

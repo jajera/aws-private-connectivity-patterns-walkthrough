@@ -1,0 +1,146 @@
+---
+title: Cloud WAN Walkthrough
+description: Deploy multi-region L3 global connectivity with segment isolation across three Cloud WAN regions.
+---
+
+import Tooltip from '@/components/Tooltip.astro';
+
+<Tooltip term="cloud-wan" label="Cloud WAN" /> is the most complex pattern: a global L3 hub with explicit <Tooltip term="segment" label="segment" /> isolation across three regions. Workloads attach to segment-specific edge locations; route policies control which segments can reach each other.
+
+| Segment | Region | Account | CIDR |
+|---------|--------|---------|------|
+| `shared` | `ap-southeast-2` (Sydney) | `123456789012` (shared-services) | `10.14.0.0/16` |
+| `workloads` | `ap-southeast-6` (Auckland) | `987654321098` (dev) | `10.24.0.0/16` |
+| `sandbox` | `ap-southeast-1` (Singapore) | `987654321098` (dev) | `10.34.0.0/16` |
+
+![Cloud WAN multi-region architecture with three segments, global core network, and RAM share from us-east-1](/aws-private-connectivity-patterns-walkthrough/diagrams/cloudwan.svg)
+
+Upstream Terraform:
+
+- [shared-services](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/cloudwan/shared-services/)
+- [consumer](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/cloudwan/consumer/)
+
+:::danger
+Cloud WAN is the highest-cost and most complex pattern of the five. It provisions a global core network, edge locations in three regions, and multi-region VPC attachments. Deploy this pattern last, after validating simpler patterns, and destroy promptly when finished.
+:::
+
+## Global Core Network and RAM Region
+
+The Cloud WAN <Tooltip term="core-network" label="core network" /> is a **global resource**. <Tooltip term="ram" label="AWS RAM" /> requires global resource shares to be created and accepted in the <Tooltip term="ram-region" label="RAM_Region" /> (`us-east-1`) — not because workloads run there, but because that is the required RAM region for global resources. All workload VPCs and <Tooltip term="attachment" label="attachments" /> remain in <Tooltip term="cloud-wan-regions" label="Cloud_WAN_Regions" /> (`ap-southeast-2`, `ap-southeast-6`, and `ap-southeast-1`).
+
+:::tip
+RAM sharing of the Cloud WAN core network must be performed in **`us-east-1`** because the core network is a **global resource**. AWS RAM mandates that global resource shares use `us-east-1` regardless of where your workload VPCs are attached. No application workloads in this walkthrough are deployed to `us-east-1`.
+:::
+
+Segment route policy: **shared ↔ workloads** allow mutual traffic; **sandbox** is isolated from all other segments.
+
+## Step 1 — Shared-Services Apply (Global Network + Core Network + RAM Share)
+
+Creates the global network, core network with segment definitions and route policies, shared-services VPC attachment in the `shared` segment (`ap-southeast-2`), internal ALB, demo API, and RAM share of the core network to the dev account.
+
+```bash
+export DEV_ACCOUNT_ID=987654321098
+
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/cloudwan/shared-services init -upgrade
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/cloudwan/shared-services apply \
+  -var="consumer_account_id=$DEV_ACCOUNT_ID"
+```
+
+Capture outputs:
+
+```bash
+export CWAN_CORE_NETWORK_ID=$(AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/cloudwan/shared-services output -raw core_network_id)
+export CWAN_CORE_NETWORK_ARN=$(AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/cloudwan/shared-services output -raw core_network_arn)
+export CWAN_RESOURCE_SHARE_ARN=$(AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/cloudwan/shared-services output -raw core_network_resource_share_arn)
+export ALB_DNS_NAME=$(AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/cloudwan/shared-services output -raw alb_dns_name)
+```
+
+Example outputs:
+
+```text
+core_network_id = core-network-EXAMPLE1234567890
+core_network_arn = arn:aws:networkmanager::123456789012:core-network/core-network-EXAMPLE1234567890
+core_network_resource_share_arn = arn:aws:ram:us-east-1:123456789012:resource-share/EXAMPLE-cwan-share
+alb_dns_name = internal-apcp-cwan-ss-app-alb-EXAMPLE.ap-southeast-2.elb.amazonaws.com
+```
+
+## Step 2 — Accept Global Core Network RAM Share (us-east-1)
+
+The consumer module accepts the RAM share, but you can verify the pending invitation from the RAM region before consumer apply:
+
+```bash
+AWS_PROFILE=dev aws ram get-resource-shares \
+  --resource-owner OTHER-ACCOUNTS \
+  --region us-east-1 \
+  --query "resourceShares[?contains(arn, 'EXAMPLE-cwan-share')].status"
+```
+
+Expected before consumer apply: `"PENDING"`.
+
+:::tip
+Always use `--region us-east-1` when inspecting or accepting the Cloud WAN core network RAM share. Using a workload region (`ap-southeast-2`) will not show the global share.
+:::
+
+## Step 3 — Consumer Apply (Accept RAM + Multi-Region Attachments)
+
+Creates VPCs and core network attachments in `ap-southeast-6` (`workloads` segment) and `ap-southeast-1` (`sandbox` segment). The consumer module accepts the global core network RAM share and attaches both VPCs.
+
+```bash
+AWS_PROFILE=dev terraform -chdir=terraform/patterns/cloudwan/consumer init -upgrade
+AWS_PROFILE=dev terraform -chdir=terraform/patterns/cloudwan/consumer apply \
+  -var="core_network_id=$CWAN_CORE_NETWORK_ID" \
+  -var="core_network_arn=$CWAN_CORE_NETWORK_ARN" \
+  -var="core_network_resource_share_arn=$CWAN_RESOURCE_SHARE_ARN"
+```
+
+Example outputs:
+
+```text
+workloads_test_ec2_instance_id = i-EXAMPLEworkloads123
+sandbox_test_ec2_instance_id = i-EXAMPLEsandbox123
+```
+
+## Segment Connectivity Expectations
+
+| Source segment | Target segment | Expected result |
+|----------------|----------------|-----------------|
+| `workloads` | `shared` | **Allow** — workloads can reach shared-services API |
+| `shared` | `workloads` | **Allow** — mutual segment connectivity |
+| `sandbox` | `shared` | **Deny** — sandbox is isolated |
+| `sandbox` | `workloads` | **Deny** — sandbox is isolated |
+
+## Step 4 — Segment Verification (Route Policy Checks)
+
+Verify segmentation directly from Cloud WAN routing state:
+
+```bash
+# workloads segment CAN see shared CIDR (10.14.0.0/16)
+AWS_PROFILE=shared-services aws networkmanager list-core-network-routing-information \
+  --region ap-southeast-2 \
+  --core-network-id "$CWAN_CORE_NETWORK_ID" \
+  --segment-name workloads \
+  --edge-location ap-southeast-6 \
+  --query "CoreNetworkRoutingInformation[?Prefix=='10.14.0.0/16']"
+```
+
+Expected: one or more route entries (non-empty array).
+
+```bash
+# sandbox segment CANNOT see shared CIDR (must return [])
+AWS_PROFILE=shared-services aws networkmanager list-core-network-routing-information \
+  --region ap-southeast-2 \
+  --core-network-id "$CWAN_CORE_NETWORK_ID" \
+  --segment-name sandbox \
+  --edge-location ap-southeast-1 \
+  --query "CoreNetworkRoutingInformation[?Prefix=='10.14.0.0/16']"
+```
+
+Expected: empty array `[]`.
+
+## Verify End-to-End Connectivity
+
+See [Verification — Cloud WAN](/walkthrough/verification/#cloud-wan) for SSM `curl` tests from both segments.
+
+## Teardown
+
+See [Teardown — Cloud WAN](/walkthrough/teardown/#cloud-wan). Destroy multi-region consumer attachments before the global core network.

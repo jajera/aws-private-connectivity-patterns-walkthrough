@@ -1,0 +1,122 @@
+---
+title: Transit Gateway Walkthrough
+description: Deploy L3 hub-and-spoke cross-account connectivity with TGW RAM sharing, attachment acceptance, and route configuration.
+---
+
+Transit Gateway is an L3 hub-and-spoke pattern. Shared-services owns the TGW (shared via RAM); the consumer attaches its VPC; shared-services then associates the attachment and adds return routes.
+
+- **Shared-services CIDR:** `10.13.0.0/16`
+- **Consumer CIDR:** `10.23.0.0/16`
+- **Region:** `ap-southeast-2`
+
+![Transit Gateway hub-and-spoke architecture with cross-account VPC attachments and route tables](/aws-private-connectivity-patterns-walkthrough/diagrams/tgw.svg)
+
+Upstream Terraform:
+
+- [shared-services](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/tgw/shared-services/)
+- [consumer](https://github.com/jajera/aws-private-connectivity-patterns-demo/tree/main/terraform/patterns/tgw/consumer/)
+
+:::caution
+After the consumer creates the TGW VPC attachment, shared-services must accept the attachment and configure TGW route tables (association, propagation, and static routes). Cross-account traffic will not flow until this follow-up shared-services apply completes.
+:::
+
+## Step 1 — Shared-Services Apply (TGW + Share + Local Attachment)
+
+Creates the Transit Gateway, RAM resource share, shared-services VPC attachment, internal ALB, and demo API.
+
+```bash
+export AWS_REGION=ap-southeast-2
+export DEV_ACCOUNT_ID=987654321098
+
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/tgw/shared-services init
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/tgw/shared-services apply \
+  -var="consumer_account_id=$DEV_ACCOUNT_ID"
+```
+
+Capture outputs:
+
+```bash
+export TGW_ID=$(AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/tgw/shared-services output -raw tgw_id)
+export TGW_RESOURCE_SHARE_ARN=$(AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/tgw/shared-services output -raw tgw_resource_share_arn)
+export ALB_DNS_NAME=$(AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/tgw/shared-services output -raw alb_dns_name)
+```
+
+Example outputs:
+
+```text
+tgw_id = tgw-EXAMPLE1234567890
+tgw_resource_share_arn = arn:aws:ram:ap-southeast-2:123456789012:resource-share/EXAMPLE-tgw-share
+alb_dns_name = internal-apcp-tgw-ss-app-alb-EXAMPLE.ap-southeast-2.elb.amazonaws.com
+```
+
+## Step 2 — Consumer Apply (Accept RAM + Attach)
+
+The consumer module accepts the RAM share and creates a VPC attachment to the shared TGW.
+
+```bash
+AWS_PROFILE=dev terraform -chdir=terraform/patterns/tgw/consumer init
+AWS_PROFILE=dev terraform -chdir=terraform/patterns/tgw/consumer apply \
+  -var="tgw_id=$TGW_ID" \
+  -var="tgw_resource_share_arn=$TGW_RESOURCE_SHARE_ARN"
+```
+
+Capture the attachment ID:
+
+```bash
+export TGW_ATTACHMENT_ID=$(AWS_PROFILE=dev terraform -chdir=terraform/patterns/tgw/consumer output -raw tgw_attachment_id)
+```
+
+Example output:
+
+```text
+tgw_attachment_id = tgw-attach-EXAMPLE1234567890
+```
+
+## Step 3 — Shared-Services Apply (Accept Attachment + Routes)
+
+Re-applies shared-services with the consumer attachment ID to associate the attachment with the TGW route table and add a static route for the consumer CIDR (`10.23.0.0/16`).
+
+```bash
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/tgw/shared-services apply \
+  -var="consumer_account_id=$DEV_ACCOUNT_ID" \
+  -var="consumer_tgw_attachment_id=$TGW_ATTACHMENT_ID"
+```
+
+Verify attachment state:
+
+```bash
+AWS_PROFILE=shared-services aws ec2 describe-transit-gateway-vpc-attachments \
+  --transit-gateway-attachment-ids "$TGW_ATTACHMENT_ID" \
+  --query "TransitGatewayVpcAttachments[0].State" \
+  --output text
+```
+
+Expected: `available`
+
+Verify route exists:
+
+```bash
+AWS_PROFILE=shared-services aws ec2 search-transit-gateway-routes \
+  --transit-gateway-route-table-id $(AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/tgw/shared-services output -raw tgw_route_table_id) \
+  --filters "Name=route-search.exact-match,Values=10.23.0.0/16" \
+  --query "Routes[0].State" \
+  --output text
+```
+
+Expected: `active`
+
+## What Each Step Creates
+
+| Step | Profile | Action |
+|------|---------|--------|
+| 1 | `shared-services` | TGW, RAM share, local VPC attachment, ALB, demo API |
+| 2 | `dev` | RAM acceptance, consumer VPC, TGW VPC attachment, consumer routes |
+| 3 | `shared-services` | Attachment association, TGW route to consumer CIDR |
+
+## Verify
+
+See [Verification — Transit Gateway](/walkthrough/verification/#transit-gateway) for the SSM `curl` test against `$ALB_DNS_NAME`.
+
+## Teardown
+
+See [Teardown — Transit Gateway](/walkthrough/teardown/#transit-gateway). Destroy consumer before shared-services.

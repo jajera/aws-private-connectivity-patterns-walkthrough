@@ -1,0 +1,36 @@
+---
+title: AWS Private Connectivity Patterns Walkthrough
+description: Documentation companion for deploying and comparing five AWS private cross-account connectivity patterns.
+template: splash
+hero:
+  tagline: Deploy and compare five independent AWS private cross-account connectivity patterns — VPC Peering, PrivateLink, VPC Lattice, Transit Gateway, and Cloud WAN
+  actions:
+    - text: Get Started
+      link: /walkthrough/overview/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/jajera/aws-private-connectivity-patterns-demo
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+import Tooltip from '@/components/Tooltip.astro';
+
+## What you'll build
+
+<CardGrid>
+  <Card title="Compare five patterns" icon="document" link="/architecture/comparison/">
+    Side-by-side guidance for <Tooltip term="vpc-peering" label="VPC Peering" />, <Tooltip term="privatelink" label="PrivateLink" />, <Tooltip term="vpc-lattice" label="VPC Lattice" />, <Tooltip term="transit-gateway" label="Transit Gateway" />, and <Tooltip term="cloud-wan" label="Cloud WAN" /> — OSI layer, CIDR overlap, cost drivers, and when to choose each.
+  </Card>
+  <Card title="Map the account topology" icon="puzzle" link="/architecture/topology/">
+    <Tooltip term="shared-services-account" label="Shared_Services_Account" /> as provider hub and <Tooltip term="dev-account" label="Dev_Account" /> as consumer spoke, with <Tooltip term="primary-region" label="Primary_Region" />, <Tooltip term="cloud-wan-regions" label="Cloud_WAN_Regions" />, and <Tooltip term="ram-region" label="RAM_Region" /> for the global <Tooltip term="core-network" label="core network" /> share.
+  </Card>
+  <Card title="Deploy one pattern at a time" icon="rocket" link="/walkthrough/execution-model/">
+    Apply shared-services then consumer, verify with curl via <Tooltip term="session-manager" label="Session Manager" />, then tear down before starting the next pattern.
+  </Card>
+  <Card title="Verify Cloud WAN segments" icon="open-book" link="/walkthrough/cloudwan/">
+    Multi-region <Tooltip term="segment" label="segments" /> with shared ↔ workloads allow and sandbox isolation — plus why <Tooltip term="ram" label="RAM" /> sharing of the global core network uses `us-east-1`.
+  </Card>
+</CardGrid>

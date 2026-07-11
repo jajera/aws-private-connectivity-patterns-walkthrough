@@ -1,0 +1,199 @@
+---
+title: Verification
+description: Connectivity tests for each pattern using curl via SSM Session Manager, plus Cloud WAN segment route checks.
+---
+
+Every pattern serves the same demo HTTP API. Verification confirms that traffic from the consumer test EC2 reaches the shared-services API over the private connectivity path.
+
+All patterns return JSON with a `pattern` field identifying which lab you hit. Field values change per deploy; only the structure is stable.
+
+:::tip
+**Pass:** `curl` returns HTTP 200 with JSON containing the expected `pattern` value. **Fail:** connection timeout, connection refused, or no response within a reasonable wait — indicates routing, DNS, security group, or segment policy issues.
+:::
+
+## General SSM Workflow
+
+Environment variables set in your local shell do **not** carry into the SSM session. Always echo the `curl` command before starting the session:
+
+```bash
+echo "curl -s http://<target-dns>/"
+AWS_PROFILE=dev aws ssm start-session --region <region> --target <instance-id>
+# Paste the curl command from the echo above
+```
+
+## PrivateLink
+
+Target: interface endpoint DNS (`*.vpce.amazonaws.com`).
+
+```bash
+export ENDPOINT_DNS_NAME=vpce-EXAMPLE-nroe17eh.vpce-svc-EXAMPLE.ap-southeast-2.vpce.amazonaws.com
+export TEST_EC2_INSTANCE_ID=i-EXAMPLE1234567890
+
+echo "curl -s http://$ENDPOINT_DNS_NAME/"
+AWS_PROFILE=dev aws ssm start-session --region ap-southeast-2 --target "$TEST_EC2_INSTANCE_ID"
+```
+
+Expected output:
+
+```text
+$ curl -s http://vpce-EXAMPLE-nroe17eh.vpce-svc-EXAMPLE.ap-southeast-2.vpce.amazonaws.com/
+{
+  "pattern": "privatelink",
+  "hostname": "ip-10-11-EXAMPLE.ap-southeast-2.compute.internal",
+  "instance_id": "i-EXAMPLEprovider123",
+  "timestamp": "2026-07-11T04:18:02.112233Z"
+}
+```
+
+## VPC Lattice
+
+Target: Lattice service DNS (`*.vpc-lattice-svcs.*.on.aws`).
+
+```bash
+export LATTICE_SERVICE_DNS_NAME=apcp-lat-lat-service-EXAMPLE.vpc-lattice-svcs.ap-southeast-2.on.aws
+export TEST_EC2_INSTANCE_ID=i-EXAMPLE1234567890
+
+echo "curl -s http://$LATTICE_SERVICE_DNS_NAME/"
+AWS_PROFILE=dev aws ssm start-session --region ap-southeast-2 --target "$TEST_EC2_INSTANCE_ID"
+```
+
+Expected output:
+
+```text
+$ curl -s http://apcp-lat-lat-service-EXAMPLE.vpc-lattice-svcs.ap-southeast-2.on.aws/
+{
+  "pattern": "lattice",
+  "hostname": "ip-10-12-EXAMPLE.ap-southeast-2.compute.internal",
+  "instance_id": "i-EXAMPLEprovider123",
+  "timestamp": "2026-07-11T04:41:19.445566Z"
+}
+```
+
+## VPC Peering
+
+Target: shared-services internal ALB DNS.
+
+```bash
+export ALB_DNS_NAME=internal-apcp-peer-ss-app-alb-EXAMPLE.ap-southeast-2.elb.amazonaws.com
+export TEST_EC2_INSTANCE_ID=i-EXAMPLE1234567890
+
+echo "curl -s http://$ALB_DNS_NAME/"
+AWS_PROFILE=dev aws ssm start-session --region ap-southeast-2 --target "$TEST_EC2_INSTANCE_ID"
+```
+
+Expected output:
+
+```text
+$ curl -s http://internal-apcp-peer-ss-app-alb-EXAMPLE.ap-southeast-2.elb.amazonaws.com/
+{
+  "pattern": "peering",
+  "hostname": "ip-10-10-EXAMPLE.ap-southeast-2.compute.internal",
+  "instance_id": "i-EXAMPLEprovider123",
+  "timestamp": "2026-07-11T05:02:11.998877Z"
+}
+```
+
+## Transit Gateway
+
+Target: shared-services internal ALB DNS (same curl pattern as peering, different `pattern` value).
+
+```bash
+export ALB_DNS_NAME=internal-apcp-tgw-ss-app-alb-EXAMPLE.ap-southeast-2.elb.amazonaws.com
+export TEST_EC2_INSTANCE_ID=i-EXAMPLE1234567890
+
+echo "curl -s http://$ALB_DNS_NAME/"
+AWS_PROFILE=dev aws ssm start-session --region ap-southeast-2 --target "$TEST_EC2_INSTANCE_ID"
+```
+
+Expected output:
+
+```text
+$ curl -s http://internal-apcp-tgw-ss-app-alb-EXAMPLE.ap-southeast-2.elb.amazonaws.com/
+{
+  "pattern": "tgw",
+  "hostname": "ip-10-13-EXAMPLE.ap-southeast-2.compute.internal",
+  "instance_id": "i-EXAMPLEprovider123",
+  "timestamp": "2026-07-11T05:28:44.001122Z"
+}
+```
+
+## Cloud WAN
+
+Cloud WAN verification has two layers: **route-policy checks** (segment allow/deny) and **end-to-end curl tests** from each segment.
+
+### Route-Policy Checks
+
+```bash
+export CWAN_CORE_NETWORK_ID=core-network-EXAMPLE1234567890
+
+# workloads → shared: ALLOW (non-empty result)
+AWS_PROFILE=shared-services aws networkmanager list-core-network-routing-information \
+  --region ap-southeast-2 \
+  --core-network-id "$CWAN_CORE_NETWORK_ID" \
+  --segment-name workloads \
+  --edge-location ap-southeast-6 \
+  --query "CoreNetworkRoutingInformation[?Prefix=='10.14.0.0/16']"
+```
+
+Expected: array with at least one route entry.
+
+```bash
+# sandbox → shared: DENY (empty result)
+AWS_PROFILE=shared-services aws networkmanager list-core-network-routing-information \
+  --region ap-southeast-2 \
+  --core-network-id "$CWAN_CORE_NETWORK_ID" \
+  --segment-name sandbox \
+  --edge-location ap-southeast-1 \
+  --query "CoreNetworkRoutingInformation[?Prefix=='10.14.0.0/16']"
+```
+
+Expected: `[]`
+
+### End-to-End curl — Workloads Segment (Pass)
+
+From the workloads test EC2 in `ap-southeast-6`:
+
+```bash
+export ALB_DNS_NAME=internal-apcp-cwan-ss-app-alb-EXAMPLE.ap-southeast-2.elb.amazonaws.com
+export TEST_EC2_INSTANCE_ID=i-EXAMPLEworkloads123
+
+echo "curl -s http://$ALB_DNS_NAME/"
+AWS_PROFILE=dev aws ssm start-session --region ap-southeast-6 --target "$TEST_EC2_INSTANCE_ID"
+```
+
+Expected output:
+
+```text
+$ curl -s http://internal-apcp-cwan-ss-app-alb-EXAMPLE.ap-southeast-2.elb.amazonaws.com/
+{
+  "pattern": "cloudwan",
+  "hostname": "ip-10-14-EXAMPLE.ap-southeast-2.compute.internal",
+  "instance_id": "i-EXAMPLEprovider123",
+  "timestamp": "2026-07-11T06:15:00.000000Z"
+}
+```
+
+### End-to-End curl — Sandbox Segment (Fail)
+
+From the sandbox test EC2 in `ap-southeast-1`:
+
+```bash
+export ALB_DNS_NAME=internal-apcp-cwan-ss-app-alb-EXAMPLE.ap-southeast-2.elb.amazonaws.com
+export TEST_EC2_INSTANCE_ID=i-EXAMPLEsandbox123
+
+echo "curl -s --connect-timeout 5 http://$ALB_DNS_NAME/"
+AWS_PROFILE=dev aws ssm start-session --region ap-southeast-1 --target "$TEST_EC2_INSTANCE_ID"
+```
+
+Expected: connection timeout or no response — this **confirms sandbox isolation is working**.
+
+## Interpreting Results
+
+| Result | Meaning |
+|--------|---------|
+| HTTP 200 + JSON with correct `pattern` | Connectivity verified |
+| Connection timeout | Missing route, segment deny policy, or security group block |
+| Connection refused | Target reachable at L3 but nothing listening on port 80 |
+| DNS resolution failure | Peering DNS not enabled, or wrong target hostname |
+
+If verification fails, see [Troubleshooting](/walkthrough/troubleshooting/).

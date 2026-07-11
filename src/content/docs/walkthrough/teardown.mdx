@@ -1,0 +1,130 @@
+---
+title: Teardown
+description: Destroy pattern resources in the correct order — consumer before shared-services — for every connectivity pattern.
+---
+
+Always destroy **consumer resources before shared-services resources**. Consumer resources depend on infrastructure created by shared-services (endpoint services, TGW attachments, core network shares, Lattice service networks). Reversing the order causes dependency errors.
+
+:::caution
+Destroying shared-services before consumer fails with errors such as "Cannot delete VPC endpoint service while endpoints exist" or "Resource share has active principals." Always tear down consumer first.
+:::
+
+## General Destroy Workflow
+
+For every pattern:
+
+1. Run `terraform destroy` in the **consumer** directory with the same `-var` values used during apply
+2. Run `terraform destroy` in the **shared-services** directory
+3. Confirm no orphaned resources remain in either account
+
+## PrivateLink
+
+```bash
+AWS_PROFILE=dev terraform -chdir=terraform/patterns/privatelink/consumer destroy -auto-approve \
+  -var="endpoint_service_name=$ENDPOINT_SERVICE_NAME"
+
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/privatelink/shared-services destroy -auto-approve \
+  -var="consumer_account_id=$DEV_ACCOUNT_ID"
+```
+
+Destroy order rationale: interface VPC endpoint must be removed before the endpoint service.
+
+## VPC Lattice
+
+```bash
+AWS_PROFILE=dev terraform -chdir=terraform/patterns/lattice/consumer destroy -auto-approve \
+  -var="lattice_service_network_arn=$LATTICE_SERVICE_NETWORK_ARN" \
+  -var="lattice_resource_share_arn=$LATTICE_RESOURCE_SHARE_ARN"
+
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/lattice/shared-services destroy -auto-approve \
+  -var="consumer_account_id=$DEV_ACCOUNT_ID"
+```
+
+Destroy order rationale: VPC association must be removed before the service network and RAM share.
+
+## VPC Peering
+
+```bash
+AWS_PROFILE=dev terraform -chdir=terraform/patterns/peering/consumer destroy -auto-approve \
+  -var="shared_services_account_id=$SHARED_SERVICES_ACCOUNT_ID" \
+  -var="shared_services_vpc_id=$SHARED_SERVICES_VPC_ID"
+
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/peering/shared-services destroy -auto-approve \
+  -var="consumer_account_id=$DEV_ACCOUNT_ID" \
+  -var="peering_connection_id=$PEERING_CONNECTION_ID"
+```
+
+Destroy order rationale: consumer VPC and peering requester side must be removed before accepter-side resources.
+
+## Transit Gateway
+
+```bash
+AWS_PROFILE=dev terraform -chdir=terraform/patterns/tgw/consumer destroy -auto-approve \
+  -var="tgw_id=$TGW_ID" \
+  -var="tgw_resource_share_arn=$TGW_RESOURCE_SHARE_ARN"
+
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/tgw/shared-services destroy -auto-approve \
+  -var="consumer_account_id=$DEV_ACCOUNT_ID" \
+  -var="consumer_tgw_attachment_id=$TGW_ATTACHMENT_ID"
+```
+
+Destroy order rationale: consumer VPC attachment must be deleted before the TGW and RAM share.
+
+## Cloud WAN
+
+Cloud WAN spans three workload regions plus a global core network. The consumer destroy removes attachments in `ap-southeast-6` and `ap-southeast-1`; shared-services destroy removes the `shared` segment attachment in `ap-southeast-2` and the global core network.
+
+```bash
+AWS_PROFILE=dev terraform -chdir=terraform/patterns/cloudwan/consumer destroy -auto-approve \
+  -var="core_network_id=$CWAN_CORE_NETWORK_ID" \
+  -var="core_network_arn=$CWAN_CORE_NETWORK_ARN" \
+  -var="core_network_resource_share_arn=$CWAN_RESOURCE_SHARE_ARN"
+
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/cloudwan/shared-services destroy -auto-approve \
+  -var="consumer_account_id=$DEV_ACCOUNT_ID"
+```
+
+Additional notes for Cloud WAN teardown:
+
+- Consumer destroy detaches VPCs from the `workloads` and `sandbox` segments in their respective regions
+- Shared-services destroy removes the `shared` segment attachment and deprovisions the core network
+- The RAM share in `us-east-1` is released when shared-services destroy completes
+- Allow several minutes for global core network deletion to propagate across regions
+
+Verify no attachments remain:
+
+```bash
+AWS_PROFILE=shared-services aws networkmanager list-attachments \
+  --region ap-southeast-2 \
+  --core-network-id "$CWAN_CORE_NETWORK_ID" \
+  --query "Attachments[].State"
+```
+
+Expected after successful teardown: empty list or error that core network does not exist.
+
+## Stale Terraform State Lock
+
+If Terraform was interrupted mid-run:
+
+```bash
+pgrep -af "terraform.*patterns/<pattern>"
+pkill -f "terraform.*patterns/<pattern>"
+```
+
+Re-run the same destroy command after clearing stale processes.
+
+## Confirm Teardown
+
+Verify both accounts have no remaining demo resources:
+
+```bash
+AWS_PROFILE=dev aws ec2 describe-instances \
+  --filters "Name=tag:Project,Values=apcp-*" "Name=instance-state-name,Values=running" \
+  --query "Reservations[].Instances[].InstanceId"
+
+AWS_PROFILE=shared-services aws ec2 describe-instances \
+  --filters "Name=tag:Project,Values=apcp-*" "Name=instance-state-name,Values=running" \
+  --query "Reservations[].Instances[].InstanceId"
+```
+
+Expected: empty arrays `[]` in both accounts.

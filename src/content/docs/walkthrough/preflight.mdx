@@ -1,0 +1,69 @@
+---
+title: Pre-flight
+description: Sequential preflight checks before deploying any connectivity pattern.
+---
+
+Run these checks in order before any `terraform apply`.
+
+## 1. AWS SSO Login
+
+Authenticate both profiles:
+
+```bash
+aws sso login --profile shared-services
+aws sso login --profile dev
+```
+
+## 2. Profile Validation
+
+Confirm each profile resolves to the expected account:
+
+```bash
+AWS_PROFILE=shared-services aws sts get-caller-identity
+```
+
+Expected output:
+
+```json
+{
+  "UserId": "EXAMPLE:user@example.com",
+  "Account": "123456789012",
+  "Arn": "arn:aws:sts::123456789012:assumed-role/EXAMPLE-AdminRole/EXAMPLE-session"
+}
+```
+
+```bash
+AWS_PROFILE=dev aws sts get-caller-identity
+```
+
+Expected output:
+
+```json
+{
+  "UserId": "EXAMPLE:user@example.com",
+  "Account": "987654321098",
+  "Arn": "arn:aws:sts::987654321098:assumed-role/EXAMPLE-AdminRole/EXAMPLE-session"
+}
+```
+
+Both commands must return `Account` and `Arn` without error.
+
+## 3. Session Manager Connectivity Test
+
+Verify SSM can reach an instance in the dev account. If you have not deployed a pattern yet, skip this step until a test EC2 exists; after the first consumer apply, re-run:
+
+```bash
+AWS_PROFILE=dev aws ssm start-session \
+  --region ap-southeast-2 \
+  --target i-EXAMPLE1234567890
+```
+
+A successful test returns an interactive shell prompt (`sh-5.2$` or similar). Type `exit` to close the session.
+
+:::caution
+Running any pattern creates billable AWS resources (VPCs, NAT gateways, load balancers, Transit Gateway attachments, Cloud WAN core network edges, and EC2 instances). Destroy resources when finished. See [Teardown](/walkthrough/teardown/) for the correct destroy order.
+:::
+
+## Next Steps
+
+Once preflight checks pass, read the [Execution Model](/walkthrough/execution-model/) under Deploy before applying your first pattern.

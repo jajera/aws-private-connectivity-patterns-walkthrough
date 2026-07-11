@@ -1,0 +1,321 @@
+---
+title: Troubleshooting
+description: Diagnose and resolve common deployment and connectivity issues across all five patterns.
+---
+
+Each entry lists the affected pattern(s), observable symptom, likely cause, resolution steps, and a verification action. All examples use placeholder account IDs (`123456789012`, `987654321098`) and placeholder resource identifiers.
+
+## SSO Token Expiry
+
+**Affected patterns:** All
+
+**Symptom:** AWS CLI or Terraform commands fail with an authentication error:
+
+```text
+Error loading SSO Token: Token for https://EXAMPLE.awsapps.com/start does not exist
+```
+
+Or:
+
+```text
+An error occurred (UnauthorizedOperation) when calling the DescribeVpcs operation:
+You are not authorized to perform this operation.
+```
+
+**Cause:** SSO session expired or login was not completed for the profile in use.
+
+**Resolution:**
+
+```bash
+aws sso login --profile shared-services
+aws sso login --profile dev
+```
+
+**Verification:**
+
+```bash
+AWS_PROFILE=shared-services aws sts get-caller-identity --query Account --output text
+AWS_PROFILE=dev aws sts get-caller-identity --query Account --output text
+```
+
+Expected: `123456789012` and `987654321098` respectively.
+
+---
+
+## Profile Misconfiguration
+
+**Affected patterns:** All
+
+**Symptom:** `aws sts get-caller-identity` returns an unexpected account ID (not `123456789012` or `987654321098`), or Terraform creates resources in the wrong account.
+
+**Cause:** Profile `sso_account_id` or `sso_role_name` in `~/.aws/config` does not match the intended demo account, or the wrong `AWS_PROFILE` is exported.
+
+**Resolution:**
+
+1. Verify profile configuration maps to the correct account IDs
+2. Explicitly set the profile on every command: `AWS_PROFILE=shared-services` or `AWS_PROFILE=dev`
+3. Never rely on a default profile during pattern work
+
+**Verification:**
+
+```bash
+AWS_PROFILE=shared-services aws sts get-caller-identity
+AWS_PROFILE=dev aws sts get-caller-identity
+```
+
+Expected accounts: `123456789012` (shared-services) and `987654321098` (dev).
+
+---
+
+## RAM Share Pending
+
+**Affected patterns:** VPC Lattice, Transit Gateway, Cloud WAN
+
+**Symptom:** Consumer Terraform apply fails during RAM acceptance or resource association:
+
+```text
+Error: waiting for RAM Resource Share (arn:aws:ram:...:resource-share/EXAMPLE) invitation acceptance: timeout
+```
+
+Or consumer apply succeeds but association resources fail with "resource not found."
+
+**Cause:** RAM share invitation not yet visible, wrong region used for Cloud WAN global share lookup, or shared-services apply did not complete.
+
+**Resolution:**
+
+For Lattice and TGW (regional shares in `ap-southeast-2`):
+
+```bash
+AWS_PROFILE=dev aws ram get-resource-share-invitations \
+  --region ap-southeast-2 \
+  --query "shareInvitations[?status=='PENDING'].resourceShareInvitationArn"
+```
+
+For Cloud WAN (global share — must use `us-east-1`):
+
+```bash
+AWS_PROFILE=dev aws ram get-resource-share-invitations \
+  --region us-east-1 \
+  --query "shareInvitations[?status=='PENDING'].resourceShareInvitationArn"
+```
+
+Accept manually if needed:
+
+```bash
+AWS_PROFILE=dev aws ram accept-resource-share-invitation \
+  --region <ram-region> \
+  --resource-share-invitation-arn arn:aws:ram:<ram-region>:123456789012:resource-share-invitation/EXAMPLE
+```
+
+Then re-run the consumer apply.
+
+**Verification:**
+
+```bash
+AWS_PROFILE=dev aws ram get-resource-shares \
+  --resource-owner OTHER-ACCOUNTS \
+  --region <ram-region> \
+  --query "resourceShares[?status=='ACTIVE'].name"
+```
+
+Expected: share name visible with status `ACTIVE`.
+
+---
+
+## Peering Not Accepted
+
+**Affected patterns:** VPC Peering
+
+**Symptom:** Consumer-side `curl` to the shared ALB times out; peering connection remains in `pending-acceptance` state:
+
+```text
+$ aws ec2 describe-vpc-peering-connections --vpc-peering-connection-ids pcx-EXAMPLE1234567890 \
+    --query "VpcPeeringConnections[0].Status.Code"
+"pending-acceptance"
+```
+
+**Cause:** Step 3 (shared-services re-apply with `peering_connection_id`) was skipped or used the wrong peering connection ID.
+
+**Resolution:**
+
+```bash
+export PEERING_CONNECTION_ID=pcx-EXAMPLE1234567890
+
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/peering/shared-services apply \
+  -var="consumer_account_id=987654321098" \
+  -var="peering_connection_id=$PEERING_CONNECTION_ID"
+```
+
+**Verification:**
+
+```bash
+AWS_PROFILE=shared-services aws ec2 describe-vpc-peering-connections \
+  --vpc-peering-connection-ids "$PEERING_CONNECTION_ID" \
+  --query "VpcPeeringConnections[0].Status.Code" \
+  --output text
+```
+
+Expected: `active`
+
+---
+
+## Route Missing
+
+**Affected patterns:** VPC Peering, Transit Gateway, Cloud WAN
+
+**Symptom:** Peering or attachment shows `active`/`available` but `curl` times out. No route to the destination CIDR exists in the relevant route table or TGW route table.
+
+**Cause:**
+
+- **VPC Peering:** Routes not applied on one or both sides after acceptance
+- **Transit Gateway:** Step 3 shared-services apply skipped — consumer attachment not associated and no static route to `10.23.0.0/16`
+- **Cloud WAN:** Segment route policy denies traffic (expected for sandbox); or attachment not fully propagated
+
+**Resolution (Transit Gateway example):**
+
+```bash
+export TGW_ATTACHMENT_ID=tgw-attach-EXAMPLE1234567890
+
+AWS_PROFILE=shared-services terraform -chdir=terraform/patterns/tgw/shared-services apply \
+  -var="consumer_account_id=987654321098" \
+  -var="consumer_tgw_attachment_id=$TGW_ATTACHMENT_ID"
+```
+
+**Verification (Transit Gateway):**
+
+```bash
+AWS_PROFILE=shared-services aws ec2 search-transit-gateway-routes \
+  --transit-gateway-route-table-id tgw-rtb-EXAMPLE1234567890 \
+  --filters "Name=route-search.exact-match,Values=10.23.0.0/16" \
+  --query "Routes[0].State" \
+  --output text
+```
+
+Expected: `active`
+
+**Verification (VPC Peering — consumer route table):**
+
+```bash
+AWS_PROFILE=dev aws ec2 describe-route-tables \
+  --filters "Name=vpc-id,Values=vpc-EXAMPLEconsumer123" \
+  --query "RouteTables[].Routes[?DestinationCidrBlock=='10.10.0.0/16'].State"
+```
+
+Expected: `"active"`
+
+---
+
+## DNS Resolution Failure (VPC Peering)
+
+**Affected patterns:** VPC Peering
+
+**Symptom:** `curl` fails with "Could not resolve host" for the shared ALB DNS name, even though peering is `active`.
+
+**Cause:** Step 4 (consumer apply with `enable_requester_dns=true`) was not completed.
+
+**Resolution:**
+
+```bash
+AWS_PROFILE=dev terraform -chdir=terraform/patterns/peering/consumer apply \
+  -var="shared_services_account_id=123456789012" \
+  -var="shared_services_vpc_id=vpc-EXAMPLEshared123" \
+  -var="enable_requester_dns=true"
+```
+
+**Verification:**
+
+```bash
+AWS_PROFILE=dev aws ec2 describe-vpc-peering-connections \
+  --filters "Name=status-code,Values=active" \
+  --query "VpcPeeringConnections[0].RequesterVpcInfo.PeeringConnectionOptions.AllowDnsResolutionFromRemoteVpc"
+```
+
+Expected: `true`
+
+---
+
+## SSM Connectivity Failure
+
+**Affected patterns:** All
+
+**Symptom:** `aws ssm start-session` fails:
+
+```text
+An error occurred (TargetNotConnected) when calling the StartSession operation:
+i-EXAMPLE1234567890 is not connected.
+```
+
+Or:
+
+```text
+SessionManagerPlugin is not found.
+```
+
+**Cause:**
+
+1. Session Manager plugin not installed (see [Prerequisites](/walkthrough/tools-and-accounts/))
+2. Test EC2 instance not yet registered with SSM (still bootstrapping)
+3. Wrong region specified (`--region` must match the instance region; Cloud WAN workloads use `ap-southeast-6` or `ap-southeast-1`)
+4. Instance terminated or wrong instance ID
+
+**Resolution:**
+
+Install the plugin, then wait 2–3 minutes after consumer apply for SSM agent registration:
+
+```bash
+AWS_PROFILE=dev aws ssm describe-instance-information \
+  --region ap-southeast-2 \
+  --filters "Key=InstanceIds,Values=i-EXAMPLE1234567890" \
+  --query "InstanceInformationList[0].PingStatus"
+```
+
+For Cloud WAN workloads instance:
+
+```bash
+AWS_PROFILE=dev aws ssm describe-instance-information \
+  --region ap-southeast-6 \
+  --filters "Key=InstanceIds,Values=i-EXAMPLEworkloads123" \
+  --query "InstanceInformationList[0].PingStatus"
+```
+
+**Verification:**
+
+```bash
+AWS_PROFILE=dev aws ssm start-session \
+  --region ap-southeast-2 \
+  --target i-EXAMPLE1234567890
+```
+
+Expected: interactive shell prompt returned.
+
+---
+
+## Terraform State Lock
+
+**Affected patterns:** All
+
+**Symptom:**
+
+```text
+Error: Error acquiring the state lock
+Lock Info:
+  ID: EXAMPLE-lock-id
+  Path: terraform/patterns/<pattern>/<role>/terraform.tfstate
+```
+
+**Cause:** Previous Terraform run was interrupted without releasing the state lock.
+
+**Resolution:**
+
+```bash
+pgrep -af "terraform.*patterns/<pattern>"
+pkill -f "terraform.*patterns/<pattern>"
+```
+
+Re-run the same Terraform command. If the lock persists and no Terraform process is running:
+
+```bash
+AWS_PROFILE=<profile> terraform -chdir=terraform/patterns/<pattern>/<role> force-unlock EXAMPLE-lock-id
+```
+
+**Verification:** Re-run `terraform plan` or `terraform apply` without lock errors.

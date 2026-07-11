@@ -1,0 +1,72 @@
+---
+title: FAQ
+description: Frequently asked questions about pattern selection, costs, regions, and this documentation site.
+---
+
+## Which pattern should I choose?
+
+Choose based on connectivity scope, OSI layer, and CIDR constraints:
+
+| Need | Recommended pattern |
+| --- | --- |
+| Simplest cross-account service exposure | PrivateLink |
+| Point-to-point VPC-to-VPC with distinct CIDRs | VPC Peering |
+| L7 routing with service policies | VPC Lattice |
+| Hub-and-spoke for many VPCs in one region | Transit Gateway |
+| Multi-region global network with segments | Cloud WAN |
+
+See the [Pattern Comparison](/architecture/comparison/) page for OSI layer, cost drivers, and detailed trade-offs. Deploy one pattern at a time — each has independent Terraform state and CIDR allocations.
+
+## How do the patterns compare on cost?
+
+Cost increases with infrastructure footprint and data processing:
+
+| Pattern | Relative cost | Primary cost drivers |
+| --- | --- | --- |
+| VPC Peering | Lowest | Free same-region data transfer; no gateway hourly charges |
+| PrivateLink | Low–medium | NLB, interface endpoint hourly charges, and data processing |
+| VPC Lattice | Medium | Service network associations and data processing per GB |
+| Transit Gateway | Medium | TGW hourly charge, VPC attachments, and per-GB data processing |
+| Cloud WAN | Highest | Core network, edge locations, attachments, and multi-region data |
+
+:::caution
+Every pattern creates billable AWS resources. Always tear down after testing. Running multiple patterns simultaneously multiplies costs across all deployed infrastructure.
+:::
+
+## Why is ap-southeast-2 the default region?
+
+**Primary_Region** (`ap-southeast-2`) is the default deployment region for four of the five patterns (VPC Peering, PrivateLink, VPC Lattice, and Transit Gateway). The upstream demo uses this region because:
+
+- It provides a consistent, single-region lab environment for comparing patterns fairly
+- All four single-region patterns share the same regional context, simplifying profile and output handoffs
+- Session Manager, NAT, and VPC resources are exercised in one well-understood region
+
+Cloud WAN is the exception — it spans **Cloud_WAN_Regions** (`ap-southeast-2`, `ap-southeast-6`, `ap-southeast-1`) to demonstrate multi-region segment routing. Adapt regions to your organization; the walkthrough principles remain the same.
+
+## What is the relationship between this site and the upstream demo repo?
+
+| Component | Location | Contains |
+| --- | --- | --- |
+| **This site** | `jajera/aws-private-connectivity-patterns-walkthrough` | Documentation, diagrams, walkthrough steps, reference pages |
+| **Upstream demo** | `jajera/aws-private-connectivity-patterns-demo` | All Terraform modules, pattern roots, and `local.env` configuration |
+
+This site is the **documentation companion**. It explains architecture, apply order, verification, and teardown. The upstream repo is where you clone, configure `local.env`, and run `terraform apply`.
+
+## Can I combine multiple patterns at once?
+
+No — not in this walkthrough. Each pattern owns separate Terraform state, VPC CIDR blocks, and resource naming under `terraform/patterns/<pattern-name>/`. The recommended workflow is:
+
+1. Deploy one pattern (shared-services, then consumer)
+2. Verify connectivity
+3. Tear down (consumer first, then shared-services)
+4. Move to the next pattern
+
+Running multiple patterns simultaneously increases cost, may cause resource conflicts in the consumer account, and defeats the purpose of isolated comparison.
+
+## Why does Cloud WAN RAM sharing use us-east-1?
+
+The Cloud WAN **core network** is a **global resource**. AWS Resource Access Manager (RAM) requires shares of global resources — including Cloud WAN core networks — to be created and accepted in **RAM_Region** (`us-east-1`), regardless of where workload VPCs are deployed.
+
+:::tip
+`us-east-1` is required for RAM acceptance of the global core network, not because Cloud WAN workloads run there. Attachments and VPCs remain in **Cloud_WAN_Regions** (`ap-southeast-2`, `ap-southeast-6`, `ap-southeast-1`).
+:::

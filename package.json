@@ -1,0 +1,36 @@
+{
+  "name": "aws-private-connectivity-patterns-walkthrough",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Astro + Starlight documentation companion for AWS private cross-account connectivity patterns",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "node scripts/check-placeholders.mjs && node scripts/check-asides.mjs && node scripts/check-links.mjs && astro build",
+    "preview": "astro preview",
+    "test": "vitest run",
+    "test:integration": "vitest run tests/integration"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.40.0",
+    "astro": "^6.4.6",
+    "astro-mermaid": "^2.1.0",
+    "mermaid": "^11.6.0",
+    "sharp": "^0.34.0",
+    "starlight-base-path": "^0.1.1",
+    "starlight-theme-vintage": "^0.1.0"
+  },
+  "devDependencies": {
+    "fast-check": "^4.1.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  },
+  "overrides": {
+    "esbuild": "^0.28.1",
+    "js-yaml": "^4.2.0",
+    "markdown-it": "^14.2.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
