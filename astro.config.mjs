@@ -6,8 +6,8 @@ import starlightImageZoom from 'starlight-image-zoom';
 import mermaid from 'astro-mermaid';
 
 export default defineConfig({
-  site: 'https://jajera.github.io',
-  base: '/aws-private-connectivity-patterns-walkthrough/',
+  site: "https://aws-private-connectivity-patterns-walkthrough.johna.kiwi",
+  base: "/",
   integrations: [
     mermaid(),
     starlight({
