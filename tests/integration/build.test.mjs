@@ -38,7 +38,7 @@ describe('Integration: build and structure', () => {
 
   it('base path is configured correctly', () => {
     const cfg = fs.readFileSync(path.join(ROOT, 'astro.config.mjs'), 'utf8');
-    expect(cfg).toContain("base: '/aws-private-connectivity-patterns-walkthrough/'");
+    expect(cfg).toContain('base: "/"');
   });
 
   it('sidebar follows progressive walkthrough sections', () => {
