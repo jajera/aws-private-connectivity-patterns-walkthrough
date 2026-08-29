@@ -10,7 +10,7 @@ Documentation companion site (Astro + Starlight) for deploying and comparing fiv
 
 **Upstream Terraform:** [jajera/aws-private-connectivity-patterns-demo](https://github.com/jajera/aws-private-connectivity-patterns-demo)
 
-**Deployed site:** https://jajera.github.io/aws-private-connectivity-patterns-walkthrough/
+**Deployed site:** https://aws-private-connectivity-patterns-walkthrough.johna.kiwi/
 
 ## Quick start
 
