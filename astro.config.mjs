@@ -15,6 +15,9 @@ export default defineConfig({
       favicon: '/favicon.svg',
       description:
         'Walkthrough companion for deploying and comparing five AWS private cross-account connectivity patterns.',
+      components: {
+        Head: "./src/components/Head.astro",
+      },
       head: [
         {
           tag: 'meta',
