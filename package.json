@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "astro dev",
     "validate": "node scripts/check-placeholders.mjs && node scripts/check-asides.mjs && node scripts/check-links.mjs",
-    "build": "npm run validate && astro build",
+    "generate:og-image": "tsx scripts/generate-og-image.ts",
+    "build": "npm run generate:og-image && npm run validate && astro build",
     "preview": "astro preview",
     "test": "vitest run",
     "test:integration": "vitest run tests/integration"
@@ -19,17 +20,17 @@
     "astro-mermaid": "^2.1.0",
     "mermaid": "^11.17.2",
     "sharp": "^0.35.4",
-    "starlight-base-path": "^0.2.1",
     "starlight-image-zoom": "^0.15.0"
   },
   "devDependencies": {
     "fast-check": "^4.1.0",
-    "typescript": "^5.8.0",
+    "tsx": "^4.23.13",
+    "typescript": "~5.9.3",
     "vitest": "^3.1.0"
   },
   "overrides": {
     "esbuild": "^0.28.1",
-    "js-yaml": "^4.2.0",
+    "js-yaml": "4.3.2",
     "markdown-it": "^14.2.0"
   },
   "engines": {

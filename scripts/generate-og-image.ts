@@ -1,4 +1,12 @@
-<?xml version="1.0" encoding="UTF-8"?>
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+import sharp from "sharp";
+
+const root = process.cwd();
+const svgOut = join(root, "public/og-image.svg");
+const pngOut = join(root, "public/og-image.png");
+
+const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img">
   <defs>
     <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
@@ -20,3 +28,9 @@
   <text x="182" y="474" text-anchor="middle" fill="#04222a" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22" font-weight="700">Get started</text>
   <text x="72" y="560" fill="#5a7a86" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="20">aws-private-connectivity-patterns-walkthrough.johna.kiwi</text>
 </svg>
+`;
+
+writeFileSync(svgOut, svg);
+await sharp(Buffer.from(svg)).png().toFile(pngOut);
+console.log(`Wrote ${svgOut}`);
+console.log(`Wrote ${pngOut}`);
