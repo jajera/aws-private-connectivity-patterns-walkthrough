@@ -19,8 +19,7 @@
     "mermaid": "^11.6.0",
     "sharp": "^0.34.0",
     "starlight-base-path": "^0.1.1",
-    "starlight-image-zoom": "^0.14.1",
-    "starlight-theme-vintage": "^0.1.0"
+    "starlight-image-zoom": "^0.14.1"
   },
   "devDependencies": {
     "fast-check": "^4.1.0",

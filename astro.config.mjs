@@ -1,6 +1,5 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
-import starlightThemeVintage from 'starlight-theme-vintage';
 import { starlightBasePath } from 'starlight-base-path';
 import starlightImageZoom from 'starlight-image-zoom';
 import mermaid from 'astro-mermaid';
@@ -16,6 +15,7 @@ export default defineConfig({
       description:
         'Walkthrough companion for deploying and comparing five AWS private cross-account connectivity patterns.',
       components: {
+        ThemeSelect: "./src/components/ThemeSelect.astro",
         Head: "./src/components/Head.astro",
       },
       head: [
@@ -36,7 +36,11 @@ export default defineConfig({
           },
         },
       ],
-      plugins: [starlightThemeVintage(), starlightBasePath(), starlightImageZoom()],
+      plugins: [starlightBasePath(), starlightImageZoom()],
+      customCss: [
+        './src/styles/patina-tokens.css',
+        './src/styles/splash-overrides.css',
+      ],
       social: [
         {
           icon: 'github',
