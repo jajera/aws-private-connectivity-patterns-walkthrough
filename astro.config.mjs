@@ -24,7 +24,7 @@ export default defineConfig({
           attrs: {
             property: 'og:image',
             content:
-              'https://jajera.github.io/aws-private-connectivity-patterns-walkthrough/og-image.png',
+              'https://aws-private-connectivity-patterns-walkthrough.johna.kiwi/og-image.png',
           },
         },
         {
@@ -32,7 +32,7 @@ export default defineConfig({
           attrs: {
             name: 'twitter:image',
             content:
-              'https://jajera.github.io/aws-private-connectivity-patterns-walkthrough/og-image.png',
+              'https://aws-private-connectivity-patterns-walkthrough.johna.kiwi/og-image.png',
           },
         },
       ],
