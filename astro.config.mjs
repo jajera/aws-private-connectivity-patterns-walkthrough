@@ -1,9 +1,8 @@
-import { defineConfig } from 'astro/config';
-import { unified } from '@astrojs/markdown-remark';
-import starlight from '@astrojs/starlight';
-import { starlightBasePath } from 'starlight-base-path';
-import starlightImageZoom from 'starlight-image-zoom';
-import mermaid from 'astro-mermaid';
+import { defineConfig } from "astro/config";
+import { unified } from "@astrojs/markdown-remark";
+import starlight from "@astrojs/starlight";
+import starlightImageZoom from "starlight-image-zoom";
+import mermaid from "astro-mermaid";
 
 export default defineConfig({
   site: "https://aws-private-connectivity-patterns-walkthrough.johna.kiwi",
@@ -16,101 +15,112 @@ export default defineConfig({
   integrations: [
     mermaid(),
     starlight({
-      title: 'AWS Private Connectivity Patterns Walkthrough',
-      favicon: '/favicon.svg',
+      title: "AWS Private Connectivity Patterns Walkthrough",
+      favicon: "/favicon.svg",
       description:
-        'Walkthrough companion for deploying and comparing five AWS private cross-account connectivity patterns.',
+        "Walkthrough companion for deploying and comparing five AWS private cross-account connectivity patterns.",
       components: {
         ThemeSelect: "./src/components/ThemeSelect.astro",
         Head: "./src/components/Head.astro",
       },
       head: [
         {
-          tag: 'meta',
+          tag: "meta",
           attrs: {
-            property: 'og:image',
+            property: "og:image",
             content:
-              'https://aws-private-connectivity-patterns-walkthrough.johna.kiwi/og-image.png',
+              "https://aws-private-connectivity-patterns-walkthrough.johna.kiwi/og-image.png",
           },
         },
         {
-          tag: 'meta',
+          tag: "meta",
           attrs: {
-            name: 'twitter:image',
+            property: "og:image:alt",
             content:
-              'https://aws-private-connectivity-patterns-walkthrough.johna.kiwi/og-image.png',
+              "AWS Private Connectivity Patterns — PrivateLink, Lattice, Peering, TGW, Cloud WAN",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            name: "twitter:image",
+            content:
+              "https://aws-private-connectivity-patterns-walkthrough.johna.kiwi/og-image.png",
           },
         },
       ],
-      plugins: [starlightBasePath(), starlightImageZoom()],
+      plugins: [starlightImageZoom()],
       customCss: [
-        './src/styles/patina-tokens.css',
-        './src/styles/splash-overrides.css',
+        "./src/styles/patina-tokens.css",
+        "./src/styles/splash-overrides.css",
       ],
       social: [
         {
-          icon: 'github',
-          label: 'Source Repository',
-          href: 'https://github.com/jajera/aws-private-connectivity-patterns-walkthrough',
+          icon: "github",
+          label: "Source Repository",
+          href: "https://github.com/jajera/aws-private-connectivity-patterns-walkthrough",
         },
       ],
       editLink: {
         baseUrl:
-          'https://github.com/jajera/aws-private-connectivity-patterns-walkthrough/edit/main/',
+          "https://github.com/jajera/aws-private-connectivity-patterns-walkthrough/edit/main/",
       },
+      lastUpdated: true,
+      pagination: true,
       sidebar: [
-        { label: 'Home', link: '/' },
+        { label: "Home", link: "/" },
         {
-          label: 'Introduction',
+          label: "Introduction",
           items: [
-            { label: 'Overview', slug: 'walkthrough/overview' },
-            { label: 'Pattern Comparison', slug: 'architecture/comparison' },
+            { label: "Overview", slug: "walkthrough/overview" },
+            { label: "Pattern Comparison", slug: "architecture/comparison" },
           ],
         },
         {
-          label: 'Prerequisites',
+          label: "Prerequisites",
           items: [
-            { label: 'Tools and Accounts', slug: 'walkthrough/tools-and-accounts' },
-            { label: 'Pre-flight', slug: 'walkthrough/preflight' },
+            {
+              label: "Tools and Accounts",
+              slug: "walkthrough/tools-and-accounts",
+            },
+            { label: "Pre-flight", slug: "walkthrough/preflight" },
           ],
         },
         {
-          label: 'Architecture',
+          label: "Architecture",
+          items: [{ label: "Account Topology", slug: "architecture/topology" }],
+        },
+        {
+          label: "Deploy",
           items: [
-            { label: 'Account Topology', slug: 'architecture/topology' },
+            { label: "Execution Model", slug: "walkthrough/execution-model" },
+            { label: "PrivateLink", slug: "walkthrough/privatelink" },
+            { label: "Lattice", slug: "walkthrough/lattice" },
+            { label: "VPC Peering", slug: "walkthrough/vpc-peering" },
+            { label: "Transit Gateway", slug: "walkthrough/tgw" },
+            { label: "Cloud WAN", slug: "walkthrough/cloudwan" },
           ],
         },
         {
-          label: 'Deploy',
+          label: "Verification",
           items: [
-            { label: 'Execution Model', slug: 'walkthrough/execution-model' },
-            { label: 'PrivateLink', slug: 'walkthrough/privatelink' },
-            { label: 'Lattice', slug: 'walkthrough/lattice' },
-            { label: 'VPC Peering', slug: 'walkthrough/vpc-peering' },
-            { label: 'Transit Gateway', slug: 'walkthrough/tgw' },
-            { label: 'Cloud WAN', slug: 'walkthrough/cloudwan' },
+            { label: "Connectivity Checks", slug: "walkthrough/verification" },
           ],
         },
         {
-          label: 'Verification',
+          label: "Troubleshooting",
           items: [
-            { label: 'Connectivity Checks', slug: 'walkthrough/verification' },
+            { label: "Common Issues", slug: "walkthrough/troubleshooting" },
           ],
         },
         {
-          label: 'Troubleshooting',
+          label: "Reference",
           items: [
-            { label: 'Common Issues', slug: 'walkthrough/troubleshooting' },
-          ],
-        },
-        {
-          label: 'Reference',
-          items: [
-            { label: 'FAQ', slug: 'reference/faq' },
-            { label: 'Decision Log & ADRs', slug: 'reference/adrs' },
-            { label: 'AWS Documentation Links', slug: 'reference/links' },
-            { label: 'Sensitive Data', slug: 'reference/sensitive-data' },
-            { label: 'Teardown', slug: 'walkthrough/teardown' },
+            { label: "FAQ", slug: "reference/faq" },
+            { label: "Decision Log & ADRs", slug: "reference/adrs" },
+            { label: "AWS Documentation Links", slug: "reference/links" },
+            { label: "Sensitive Data", slug: "reference/sensitive-data" },
+            { label: "Teardown", slug: "walkthrough/teardown" },
           ],
         },
       ],

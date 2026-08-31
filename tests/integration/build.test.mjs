@@ -43,14 +43,14 @@ describe('Integration: build and structure', () => {
 
   it('sidebar follows progressive walkthrough sections', () => {
     const cfg = fs.readFileSync(path.join(ROOT, 'astro.config.mjs'), 'utf8');
-    expect(cfg).toContain("label: 'Home'");
-    const intro = cfg.indexOf("label: 'Introduction'");
-    const prereq = cfg.indexOf("label: 'Prerequisites'");
-    const arch = cfg.indexOf("label: 'Architecture'");
-    const deploy = cfg.indexOf("label: 'Deploy'");
-    const verify = cfg.indexOf("label: 'Verification'");
-    const trouble = cfg.indexOf("label: 'Troubleshooting'");
-    const ref = cfg.indexOf("label: 'Reference'");
+    expect(cfg).toMatch(/label:\s*["']Home["']/);
+    const intro = cfg.search(/label:\s*["']Introduction["']/);
+    const prereq = cfg.search(/label:\s*["']Prerequisites["']/);
+    const arch = cfg.search(/label:\s*["']Architecture["']/);
+    const deploy = cfg.search(/label:\s*["']Deploy["']/);
+    const verify = cfg.search(/label:\s*["']Verification["']/);
+    const trouble = cfg.search(/label:\s*["']Troubleshooting["']/);
+    const ref = cfg.search(/label:\s*["']Reference["']/);
     expect(intro).toBeGreaterThan(-1);
     expect(prereq).toBeGreaterThan(intro);
     expect(arch).toBeGreaterThan(prereq);
@@ -59,14 +59,24 @@ describe('Integration: build and structure', () => {
     expect(trouble).toBeGreaterThan(verify);
     expect(ref).toBeGreaterThan(trouble);
     expect(cfg).not.toContain('diagram-vpc-peering');
-    expect(cfg).toContain('starlight-base-path');
     expect(cfg).toContain('patina-tokens.css');
+    expect(cfg).toContain('ThemeSelect');
+    expect(cfg).not.toContain('starlight-base-path');
     expect(cfg).not.toContain("slug: 'reference/glossary'");
   });
 
   it('npm run build exits 0', () => {
     execSync('npm run build', { cwd: ROOT, stdio: 'pipe', env: { ...process.env } });
   }, 180_000);
+
+  it('built pages use root-relative diagram paths', () => {
+    const html = fs.readFileSync(
+      path.join(ROOT, 'dist/walkthrough/privatelink/index.html'),
+      'utf8',
+    );
+    expect(html).toContain('src="/diagrams/privatelink.svg"');
+    expect(html).not.toContain('/aws-private-connectivity-patterns-walkthrough/diagrams/');
+  });
 
   it('Cloud WAN tip frames us-east-1 as global resource requirement', () => {
     const page = fs.readFileSync(
