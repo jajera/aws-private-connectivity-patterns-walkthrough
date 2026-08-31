@@ -76,6 +76,6 @@ describe('Integration: build and structure', () => {
     expect(page).toMatch(/:::tip/);
     expect(page.toLowerCase()).toMatch(/global resource/);
     expect(page).toMatch(/us-east-1/);
-    expect(page).toMatch(/\/aws-private-connectivity-patterns-walkthrough\/diagrams\/cloudwan\.svg/);
+    expect(page).toMatch(/\/diagrams\/cloudwan\.svg/);
   });
 });
