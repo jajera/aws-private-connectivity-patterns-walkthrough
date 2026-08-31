@@ -23,8 +23,8 @@
   },
   "devDependencies": {
     "fast-check": "^4.1.0",
-    "typescript": "^5.8.0",
-    "vitest": "^3.1.0"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "esbuild": "^0.28.1",
