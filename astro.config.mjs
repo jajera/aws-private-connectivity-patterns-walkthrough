@@ -1,4 +1,5 @@
 import { defineConfig } from 'astro/config';
+import { unified } from '@astrojs/markdown-remark';
 import starlight from '@astrojs/starlight';
 import { starlightBasePath } from 'starlight-base-path';
 import starlightImageZoom from 'starlight-image-zoom';
@@ -7,6 +8,11 @@ import mermaid from 'astro-mermaid';
 export default defineConfig({
   site: "https://aws-private-connectivity-patterns-walkthrough.johna.kiwi",
   base: "/",
+  // starlight-image-zoom and astro-mermaid require the unified markdown
+  // processor; Astro 7 defaults to Sätteri, which neither plugin supports yet.
+  markdown: {
+    processor: unified(),
+  },
   integrations: [
     mermaid(),
     starlight({
