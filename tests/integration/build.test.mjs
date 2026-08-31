@@ -59,8 +59,8 @@ describe('Integration: build and structure', () => {
     expect(trouble).toBeGreaterThan(verify);
     expect(ref).toBeGreaterThan(trouble);
     expect(cfg).not.toContain('diagram-vpc-peering');
-    expect(cfg).toContain('starlight-theme-vintage');
     expect(cfg).toContain('starlight-base-path');
+    expect(cfg).toContain('patina-tokens.css');
     expect(cfg).not.toContain("slug: 'reference/glossary'");
   });
 
