@@ -14,13 +14,13 @@
     "test:integration": "vitest run tests/integration"
   },
   "dependencies": {
-    "@astrojs/markdown-remark": "^7.2.4",
-    "@astrojs/starlight": "^0.41.9",
+    "@astrojs/markdown-remark": "^7.3.0",
+    "@astrojs/starlight": "^0.42.0",
     "astro": "^7.2.9",
     "astro-mermaid": "^2.1.0",
     "mermaid": "^11.17.2",
     "sharp": "^0.35.4",
-    "starlight-image-zoom": "^0.15.0"
+    "starlight-image-zoom": "^0.16.0"
   },
   "devDependencies": {
     "fast-check": "^4.1.0",
