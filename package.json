@@ -23,10 +23,10 @@
     "starlight-image-zoom": "^0.16.0"
   },
   "devDependencies": {
-    "fast-check": "^4.1.0",
+    "fast-check": "^4.10.1",
     "tsx": "^4.23.13",
     "typescript": "~5.9.3",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.1"
   },
   "overrides": {
     "esbuild": "^0.28.1",
